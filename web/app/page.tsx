@@ -25,7 +25,7 @@ export default function Page() {
           </span>
         </div>
         <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800">
-          Phase 0 · Kalgoorlie
+          {process.env.NEXT_PUBLIC_PMTILES_URL ? "Phase 1 · all of WA" : "Phase 0 · Kalgoorlie"}
         </span>
       </header>
 

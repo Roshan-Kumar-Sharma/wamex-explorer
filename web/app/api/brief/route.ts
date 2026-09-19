@@ -30,6 +30,10 @@ export async function POST(req: NextRequest) {
   }
 
   const g = JSON.stringify(geom);
+  if (process.env.NODE_ENV !== "production") {
+    const ring = (geom as { coordinates?: number[][][] }).coordinates?.[0];
+    console.log(`[brief] polygon with ${ring?.length ?? "?"} ring coords:`, JSON.stringify(ring?.map(c => c.map(x => +x.toFixed(4)))));
+  }
   const client = await pool.connect();
   const t0 = Date.now();
 

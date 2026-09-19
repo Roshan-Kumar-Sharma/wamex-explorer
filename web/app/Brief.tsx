@@ -40,12 +40,8 @@ export default function BriefPanel({ brief, loading }: { brief: Brief | null; lo
       <div className="flex h-full flex-col justify-center px-6 text-sm text-stone-600">
         <h2 className="text-base font-semibold text-stone-900">Ground history brief</h2>
         <p className="mt-2 leading-relaxed">
-          Click <b>Draw an area</b>, then drag a box on the map. You&apos;ll get every
-          drillhole and exploration report recorded on that ground.
-        </p>
-        <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-[12px] leading-relaxed text-amber-900">
-          <b>Phase 0.</b> Only a 1°×1° box around Kalgoorlie is loaded
-          (121–122°E, 30.25–31.25°S) — the dashed outline on the map.
+          Draw a polygon or a box on the map. You&apos;ll get every drillhole and
+          exploration report recorded on that ground.
         </p>
         <p className="mt-3 text-[12px] leading-relaxed text-stone-500">
           Every figure comes from a database query over the official record. No
