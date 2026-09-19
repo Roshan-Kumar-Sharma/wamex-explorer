@@ -139,14 +139,28 @@ export async function buildBrief(
           WHERE ST_Intersects(rg.geom, aoi.geom)
             AND coalesce(r.operator, r.author_company) IS NOT NULL ${rw.sql}
           GROUP BY 1 ORDER BY 2 DESC LIMIT 20`, rw.params),
+      // Inventory. Coverage is computed only for the rows returned (the
+      // LIMIT happens in `sel` first): ST_Intersection on 500 tenement
+      // outlines is ~0.5 s, on 100 it is ~0.1 s. `coverage_pct` is the share
+      // of the drawn area under this report's footprint; `footprint_km2` is
+      // the report's whole footprint -- together they separate a regional
+      // survey (100%, 160,000 km2) from a prospect at the edge (2%, 3 km2).
       () => q(
-        `SELECT DISTINCT r.anumber, r.title, r.report_year, r.report_type,
-                coalesce(r.operator, r.author_company) AS operator,
-                r.abstract_short, r.abstract_full, r.url_report, r.url_abstract, r.has_digital_file
-           FROM report_geometries rg JOIN reports r USING (anumber) CROSS JOIN aoi
-          WHERE ST_Intersects(rg.geom, aoi.geom) ${rw.sql}
-          ORDER BY r.report_year DESC NULLS LAST, r.anumber DESC
-          LIMIT ${reportsLimit}`, rw.params),
+        `WITH sel AS (
+           SELECT DISTINCT r.anumber, r.title, r.report_year, r.report_type,
+                  coalesce(r.operator, r.author_company) AS operator,
+                  r.abstract_short, r.abstract_full, r.url_report, r.url_abstract, r.has_digital_file
+             FROM report_geometries rg JOIN reports r USING (anumber) CROSS JOIN aoi
+            WHERE ST_Intersects(rg.geom, aoi.geom) ${rw.sql}
+            ORDER BY r.report_year DESC NULLS LAST, r.anumber DESC
+            LIMIT ${reportsLimit}
+         ), a AS (SELECT ST_Area(geom::geography) AS m2 FROM aoi)
+         SELECT sel.*,
+                least(100, round(100 * (SELECT sum(ST_Area(ST_Intersection(rg.geom, aoi.geom)::geography))
+                                           FROM report_geometries rg, aoi WHERE rg.anumber = sel.anumber) / a.m2))::int AS coverage_pct,
+                round(((SELECT sum(ST_Area(rg.geom::geography)) FROM report_geometries rg WHERE rg.anumber = sel.anumber) / 1e6)::numeric, 1)::float8 AS footprint_km2
+           FROM sel, a
+          ORDER BY sel.report_year DESC NULLS LAST, sel.anumber DESC`, rw.params),
       () => q(
         `SELECT (r.report_year / 10) * 10 AS decade, count(DISTINCT r.anumber)::int AS reports
            FROM report_geometries rg JOIN reports r USING (anumber) CROSS JOIN aoi

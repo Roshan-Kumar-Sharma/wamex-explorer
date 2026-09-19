@@ -16,6 +16,10 @@ export type Brief = {
     report_type: string | null; operator: string | null; abstract_short: string | null;
     url_report: string | null; url_abstract: string | null; has_digital_file: boolean;
     abstract_full: string | null;
+    /** Share of the drawn area under this report's footprint, 0-100. */
+    coverage_pct: number | null;
+    /** The report's whole footprint, km². Large = regional survey. */
+    footprint_km2: number | null;
   }[];
   /** True when the inventory was cut at the request limit. */
   reportsCapped: boolean;

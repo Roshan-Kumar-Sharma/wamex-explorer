@@ -43,7 +43,17 @@ export default function ReportItem({ r, compact = false }: { r: R; compact?: boo
         </span>
       </div>
       <p className={`mt-0.5 leading-snug text-stone-800 ${compact ? "text-[12px]" : "text-[13px]"}`}>{r.title ?? "(untitled)"}</p>
-      {r.operator && <p className="text-[11px] text-stone-500">{r.operator}</p>}
+      {(r.operator || r.coverage_pct != null) && (
+        <p className="text-[11px] text-stone-500">
+          {r.operator}
+          {r.coverage_pct != null && (
+            <span className="text-stone-400" title="Share of the drawn area under this report's footprint, and the footprint's total size">
+              {r.operator && " · "}covers {r.coverage_pct === 0 ? "<1" : r.coverage_pct}% of this area
+              {r.footprint_km2 != null && <> · {r.footprint_km2 >= 100 ? Math.round(r.footprint_km2).toLocaleString() : r.footprint_km2} km² footprint</>}
+            </span>
+          )}
+        </p>
+      )}
 
       {full ? (
         <div className={`mt-1.5 whitespace-pre-line leading-relaxed text-stone-700 ${compact ? "text-[12px]" : "text-[12.5px]"}`}>
