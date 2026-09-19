@@ -180,8 +180,8 @@ export default function BriefPanel({
             <li>Every decade between {brief.period.first_year} and {brief.period.last_year} has at least one report.</li>
           )}
           <li>
-            Recent exploration may be <b>confidential</b> and therefore absent. Latest
-            open-file release here: <b>{brief.period.latest_release?.slice(0, 10) ?? "—"}</b>.
+            Annual reports are <b>confidential for five years</b>; the last five years on live ground
+            are mostly absent. Latest open-file release here: <b>{brief.period.latest_release?.slice(0, 10) ?? "—"}</b>.
           </li>
           <li>
             Drillhole records are <b>collars only</b> — no assays, no downhole geology.

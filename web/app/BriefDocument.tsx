@@ -381,9 +381,10 @@ export default function BriefDocument({ brief, id, title, createdAt, permalink }
           </li>
         )}
         <li>
-          <b>Confidential work.</b> Reports stay confidential for a statutory period after lodgement, and reports on live tenements
-          can remain so. Recent exploration may exist and not appear here. Latest open-file release intersecting this area:{" "}
-          <b>{p.latest_release?.slice(0, 10) ?? "—"}</b>.
+          <b>Confidential work.</b> Under the Mining Act, annual reports stay confidential for <b>five years</b> (or until three
+          months after the tenement is surrendered, whichever is earlier); surrender reports are released three months after
+          surrender. Work from the last five years on live ground is therefore mostly absent from this record. Latest
+          open-file release intersecting this area: <b>{p.latest_release?.slice(0, 10) ?? "—"}</b>.
         </li>
         <li><b>Assays and geology.</b> The drillhole register holds collar positions, depth, method and date. No assay, lithology or downhole survey is included; those live in the reports themselves.</li>
         {brief.reportsCapped && (
@@ -420,6 +421,7 @@ export default function BriefDocument({ brief, id, title, createdAt, permalink }
         <p className="mt-2">
           {ATTRIBUTION}, used under <a href={LICENCE_URL} target="_blank" rel="noreferrer" className="underline">CC BY 4.0</a>.
           This document is a summary of public records and makes no statement about prospectivity or value.
+          Verify against the primary sources — each A-number above links to the department&apos;s record — before relying on it.
         </p>
       </footer>
     </article>
