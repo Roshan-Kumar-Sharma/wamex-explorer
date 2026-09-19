@@ -128,7 +128,7 @@ disappears entirely.
 ---
 
 ## ADR-008 — Retarget the product away from `BUILD.md` Phase 2
-**19 Sep 2026 · Proposed — needs your call**
+**19 Sep 2026 · Accepted (Roshan, same day)**
 
 **Context.** [NextMaps](01-research/03-competitive-landscape.md) has shipped the Phase 2
 product: polygon → AI desk study from the full WAMEX A-file record, **every claim cited to
@@ -141,8 +141,11 @@ Phase 2 as a commercial product.**
 **Why.** The market is validated — someone charges $200/mo for this — but the specific
 wedge is taken by a better-resourced incumbent with paid data we can't match.
 
-**Status.** Awaiting decision. See
-[product options](01-research/04-product-options.md).
+**Decision.** Accepted. wamex-explorer is the classroom, not the product. Sequence:
+Phase 1 → publish the cleaned corpus → grow `mineio` as the export engine → national only
+after a spike. **Phase 2 is still built** — as the learning vehicle and the showcase, not
+as a business. See [product options](01-research/04-product-options.md), "How to evaluate
+a target".
 
 ---
 
@@ -303,3 +306,99 @@ is included for safety. They are real, and the bound was wrong, not the data. Sa
 as the 1753 dates: look at the rejects before trusting the rule that rejected them.
 
 **Reverses if.** Nothing plausible.
+
+---
+
+## ADR-018 — Permalinks keyed by content hash; stored briefs are never regenerated
+**19 Sep 2026 · Accepted**
+
+**Context.** `BUILD.md` Phase 2: "Permalink per brief. Shareable." `CLAUDE.md`: "cached by
+polygon hash."
+
+**Decision.** `briefs.id = base32(sha256(canonical polygon + canonical filters))[:12]`.
+Coordinates rounded to 6 dp, filter keys sorted, empties dropped. `POST /api/briefs` returns
+the existing row if the id exists. The stored `result` is the brief exactly as generated,
+with `data_version` (max `extract_date` at the time). `/b/<id>` renders the stored result;
+`/?b=<id>` reopens the polygon on the map and runs a *live* brief.
+
+**Why.** The same ground drawn twice must be the same link — that is what makes a link a
+citation. And a link someone shared must show what they saw: silently regenerating a
+stored brief after a weekly data refresh would change the numbers under a screenshot.
+The document prints its data version so a reader can tell it is a snapshot.
+
+**Cost.** ~400 KB per stored brief (500 reports with abstracts, ~300 grid cells). At a
+few thousand briefs that is a gigabyte; acceptable, revisit at 10k.
+
+**Reverses if.** Storage matters, in which case store geometry + filters only and cache
+regenerated results with a TTL — accepting that old links drift.
+
+---
+
+## ADR-019 — Coverage by square grid in the local MGA zone
+**19 Sep 2026 · Accepted**
+
+**Decision.** Tile the polygon with `ST_SquareGrid` in EPSG `7800 + zone`, cell edge
+`sqrt(area/300)` rounded to 50 m (min 50). A cell belongs if its centroid is inside.
+Holes snap to cells by integer division, counted over the whole cell. Three tiers: no
+hole / no hole ≥ 50 m / no RC-DD-RCD. Water bores and costeans excluded. `hits` CTE is
+`MATERIALIZED`.
+
+**Why squares, not hexagons.** Point-in-square is arithmetic; point-in-hexagon is a
+polygon test. 0.4 s vs 1.3 s on a 1° box. **Why MGA.** Cells must be metres, and Web
+Mercator is ~15% stretched at 30°S. **Why the centroid rule.** Edge slivers otherwise
+count as undrilled for being small. **Why MATERIALIZED.** The planner inlined the
+aggregate under a nested loop and ran it once per cell — 9 s instead of 0.4.
+
+**Limits, stated in the document.** One hole anywhere in a cell makes it "drilled"; the
+50 m and RC/DD thresholds are proxies for reaching fresh rock, not measurements of it.
+Full reasoning: [03-concepts/05-coverage-and-what-was-never-tested.md](03-concepts/05-coverage-and-what-was-never-tested.md).
+
+**Reverses if.** We want neighbour-aware statistics (clusters of untested cells), where
+hexagons are genuinely better — at which point precompute the hex id per hole at ingest.
+
+---
+
+## ADR-020 — Full-abstract fetch etiquette
+**19 Sep 2026 · Accepted (implements ADR-007)**
+
+**Context.** ADR-007 resolved: the bulk data has no full abstracts. Phase 2 found worse —
+GSWA abstracts stop in 2014, and **26,760 reports since have no abstract in bulk at all**
+— and better: the per-report page carries structured, company-written abstracts with
+drill intercepts for exactly those reports.
+
+**Decision.** One serial queue per process, ≥ 600 ms between requests, 15 s timeout,
+User-Agent `wamex-explorer/0.2 (open-source WAMEX viewer; <WAMEX_CONTACT>)`. Fetch only
+for a report a user is looking at (`GET /api/abstract/:a`) or the reports on one brief
+page (`POST /api/abstract`, ≤ 25 per call, still serial). Cache forever in
+`reports.abstract_full`; record failures in `abstract_fetch_error` and do not retry for
+7 days. The contact string comes from an environment variable, not the source.
+
+**Why.** A free government service behind a CDN. Getting blocked ends the project.
+Politeness is cheap; the per-page cost to a user is ~0.8 s per report, and every fetch
+makes the corpus better for the next person.
+
+**Never.** No bulk pre-fetch, not even "just the 26,760 recent ones", without asking the
+department first. That conversation is worth having — it is the corpus-publishing
+conversation (Option 4) — but it is a conversation, not a script.
+
+---
+
+## ADR-021 — The document's prose is templated, and still no LLM
+**19 Sep 2026 · Accepted (extends ADR-005)**
+
+**Context.** `BUILD.md` Phase 2 is written as "generate a structured brief". The
+document at `/b/<id>` reads as prose in places ("Between 1937 and 2024, 504 open-file
+reports were lodged…").
+
+**Decision.** Every sentence in the document is a fixed template with numbers from
+`GROUP BY` substituted in, or a string copied verbatim from the record beside its
+A-number. The one general-knowledge statement (regolith depth) is marked "general note,
+not from this record". Absences are phrased as facts about the record ("no report lists
+lithium as a target"), never as facts about the ground.
+
+**Why.** The audience checks. A template cannot hallucinate a number, and a verbatim
+abstract with its A-number is a citation. This satisfies `CLAUDE.md` §"citation or
+silence" by construction. If prose generation is ever added, it sits *above* this layer,
+labelled, and is fed only the retrieved abstracts — the template layer stays the floor.
+
+**Reverses if.** Never fully; see ADR-005.

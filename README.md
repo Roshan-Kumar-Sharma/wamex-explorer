@@ -13,19 +13,21 @@ Built on WA's free, public, CC BY 4.0 open-file exploration data:
 | `CLAUDE.md` | Project context, auto-loaded by Claude Code |
 | `docs/` | **Learning-first documentation** — domain primer, glossary, verified research, architecture, concepts |
 
-**Status:** **Phase 1 working.** All of Western Australia — 3,465,828 drillholes and
-118,834 reports — in local PostGIS, rendered from one PMTiles file. Draw a polygon
-anywhere in the state, get a cited brief with facets in under a second. No LLM.
+**Status:** **Phase 2 working, locally.** Draw an area anywhere in WA → "Save & share as
+document" → a permalinked ground-history brief: exploration timeline, drilling summary,
+commodity focus over time, what the record does not show, and every report with its
+abstract, each cited to its A-number. Still no LLM: every sentence is a template filled
+from a `GROUP BY`. Four pre-generated briefs for ground every WA geologist knows:
+`/b/super-pit`, `/b/boddington`, `/b/tropicana`, `/b/mt-keith`.
 See [docs/02-architecture/04-running-locally.md](docs/02-architecture/04-running-locally.md).
 
 ![All WA drillholes](docs/images/phase1-all-wa-drillholes.png)
 
-⚠️ **Read [`docs/01-research/03-competitive-landscape.md`](docs/01-research/03-competitive-landscape.md)
-before building Phase 2** — a commercial product (NextMaps) already ships polygon → cited
-ground history. `BUILD.md`'s phases 0–1 still stand; phase 2 needs a rethink. See
-[`docs/01-research/04-product-options.md`](docs/01-research/04-product-options.md).
+ℹ️ A commercial product (NextMaps) already sells polygon → cited ground history. This
+project is **not** competing with it — it is the learning vehicle and a corpus-cleaning
+effort (ADR-008). See [`docs/01-research/04-product-options.md`](docs/01-research/04-product-options.md).
 
-Start at [`docs/README.md`](docs/README.md). Next: publish the cleaned corpus (Option 4), then deploy.
+Start at [`docs/README.md`](docs/README.md). Next: publish the cleaned corpus (Option 4), weekly refresh, deploy.
 
 ---
 

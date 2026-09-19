@@ -14,7 +14,10 @@ Bookmark this.
 | **Open file** | Public. Reports become open file after their confidentiality period expires. |
 | **Confidential / closed file** | Still within the confidentiality window. Not in our data. |
 | **DMIRS / DEMIRS / DMPE** | The WA government department. Renamed twice. Endpoints still use `dmirs.wa.gov.au`. Keep the name in exactly one config string. |
-| **GSWA** | Geological Survey of Western Australia — the scientific arm. They write the report abstracts. |
+| **GSWA** | Geological Survey of Western Australia — the scientific arm. Wrote the report abstracts until ~2014; since then companies write their own, in a structured form. See `03-concepts/04-reading-a-wamex-abstract.md`. |
+| **Report type** | *Annual* (yearly on a live tenement, 67% of the archive), *Final Surrender* (tenement given up — the life-of-tenement summary and the reason for leaving), *Partial Surrender*, *Non-statutory*, *Co-Funded Drilling / Geophysics* (EIS-funded, fast to open file), *Core Library*. |
+| **EIS** | Exploration Incentive Scheme — WA government co-funds drilling and geophysics; the condition is early public release. |
+| **Permalink / brief id** | In this project: a 12-char hash of the drawn polygon and filters. Same ground, same link. `/b/super-pit` etc. are slugs on top of ids. |
 | **SLIP** | *Shared Location Information Platform* — WA's public spatial data service. Our ArcGIS REST endpoints. |
 | **DASC** | *Data and Software Centre* — the bulk download portal. |
 | **MDHDB** | *Minerals Drillhole and Geochemistry Database* — the separate, harmonised assay database. Where grades actually live. |
@@ -82,7 +85,9 @@ Bookmark this.
 | **Pilbara Craton** | The northwest. Iron ore, and some of the oldest rocks on Earth. |
 | **Greenstone belt** | Bands of ancient volcanic/sedimentary rock within a craton. **Gold lives here.** |
 | **Archean** | 4.0–2.5 billion years ago. Most WA gold host rocks. |
-| **Regolith / Cover** | Weathered material over bedrock. WA has deep cover, which is *why* exploration is hard here. |
+| **Regolith / Cover** | Weathered material over bedrock — commonly 20–100 m in the Yilgarn, deeper in palaeochannels. WA has deep cover, which is *why* exploration is hard here. RAB/aircore sample it; RC/diamond get below it. |
+| **Fresh rock / bedrock** | Unweathered rock under the regolith. What the geologist actually wants. The brief uses "≥ 50 m or RC/DD" as a stated proxy for reaching it. |
+| **Poseidon boom** | The 1969–70 nickel share bubble, triggered by Poseidon NL's Windarra discovery. Visible in the data as a cluster of nickel/copper/cobalt operators (INCO, Tasminex, Australian Selection…) around 1967–74 on ground that is otherwise gold. |
 | **Ultramafic / Mafic / Felsic** | Rock chemistry: low → high silica. Ultramafic ≈ nickel. |
 | **Shear zone** | A deformation structure. Often the plumbing that gold travelled through. |
 | **Laterite / Saprolite** | Weathering layers in the regolith profile. |
@@ -112,6 +117,7 @@ Bookmark this.
 | **GDB / SHP / TAB** | Esri Geodatabase / Shapefile / MapInfo — the bulk download formats. |
 | **OMF** | Open Mining Format. Open 3D interchange format. |
 | **IREDES** | International Rock Excavation Data Exchange Standard — drill rig communication. |
+| **Grid convergence** | The angle between MGA grid north and true north — up to ~3° at a zone edge. Why the brief's coverage squares look tilted against a lat/long box. |
 
 ## Companies & people
 

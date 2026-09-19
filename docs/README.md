@@ -25,6 +25,8 @@ Concept notes (written as we hit each topic, not upfront):
 - [03-concepts/01-coordinate-systems.md](03-concepts/01-coordinate-systems.md) — WGS84, MGA, why it matters
 - [03-concepts/02-postgis-basics.md](03-concepts/02-postgis-basics.md) — spatial SQL from scratch
 - [03-concepts/03-vector-tiles-and-pmtiles.md](03-concepts/03-vector-tiles-and-pmtiles.md) — how you draw 3.4M points in a browser
+- [03-concepts/04-reading-a-wamex-abstract.md](03-concepts/04-reading-a-wamex-abstract.md) — A-numbers, report types, confidentiality, and the two generations of abstract
+- [03-concepts/05-coverage-and-what-was-never-tested.md](03-concepts/05-coverage-and-what-was-never-tested.md) — regolith vs fresh rock, the coverage grid, and how to phrase an absence
 
 Running records:
 

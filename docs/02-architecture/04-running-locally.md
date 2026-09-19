@@ -85,10 +85,37 @@ npm install
 npm run dev
 ```
 
-http://localhost:3000 — click **Draw an area**, drag a box inside the dashed outline.
+http://localhost:3000 — **Draw polygon** or **Draw box**, then read the panel. **Save &
+share as document** creates the permalink and opens it.
 
 > `npm run dev` uses **webpack**, not Turbopack (`npm run dev:turbo` if you want it).
 > `predev` copies MapLibre's worker into `public/maplibre/` — see ADR-012.
+
+## 3b. Phase 2 — permalinks, full abstracts, famous ground
+
+The Phase 2 schema is a separate file because the database already existed when it was
+written. Apply it once (idempotent):
+
+```bash
+psql postgresql://wamex:wamex@localhost:54329/wamex -f sql/020_phase2.sql
+```
+
+Optional, in `web/.env.local` — who the department sees when we fetch an abstract
+(ADR-020). Falls back to the repo URL if unset:
+
+```bash
+echo 'WAMEX_CONTACT=you@example.com' >> web/.env.local
+```
+
+Pre-generate the four briefs for well-known ground (dev server must be running):
+
+```bash
+cd web && node scripts/seed-briefs.mjs
+```
+
+Then http://localhost:3000/b/super-pit, `/b/boddington`, `/b/tropicana`, `/b/mt-keith`.
+Each box was checked against the register by dominant operator before it went in the
+script; if you move one, do the same check.
 
 ## Checking the data
 
@@ -124,6 +151,23 @@ curl -s -X POST http://localhost:3000/api/brief \
 That exact box is the reference case: **504 reports** on either load path, and **12,396
 drillholes** from the REST API on 19 Sep (12,387 from the 14 Sep bulk file — the state
 gained 863 holes in between).
+
+Phase 2 endpoints:
+
+```bash
+# create (or find) the permalink for a polygon -> {"id","url","existing"}
+curl -s -X POST http://localhost:3000/api/briefs -H 'Content-Type: application/json' \
+  -d '{"geometry":{...},"filters":{},"title":"optional"}'
+
+# the stored brief, its polygon and filters
+curl -s http://localhost:3000/api/briefs/super-pit | python3 -m json.tool | head -40
+
+# one report's full abstract, fetched from DMPE on first call and cached after
+curl -s http://localhost:3000/api/abstract/40846
+```
+
+In dev, `meta.timings` in the brief JSON is the wall time of each query in
+`lib/brief.ts` order — the first place to look when a polygon is slow.
 
 ## Troubleshooting
 

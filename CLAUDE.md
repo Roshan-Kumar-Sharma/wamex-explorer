@@ -35,12 +35,22 @@ Build citations in from day one. Trust cannot be retrofitted.
 
 - **3,466,691** open-file drillholes (SLIP layer 28); **118,834** unique WAMEX reports (layer 22 has 615,050 rows, but they are ~5× *exact duplicates* — a bad join in the upstream export. Always `COUNT(DISTINCT anumber)`.)
 - **`anumber` joins holes to reports** — the most important relationship in the dataset
-- **Layer 22's `abstract` is `varchar(250)`, truncated mid-word** — in both the API and the DASC bulk file. The full abstract (~900–1,200 chars, GSWA-written, excellent) is behind the per-report `dpxe_abs` URL. Fetch lazily, cache forever, never bulk-scrape.
+- **Layer 22's `abstract` is `varchar(250)`, truncated mid-word** — in both the API and the DASC bulk file — **and empty for 26,760 post-2014 reports** (GSWA stopped writing abstracts in 2014). The per-report `dpxe_abs` page has the full text: GSWA-written before 2014, structured company-written (with drill intercepts) after. `web/lib/abstract.ts` fetches lazily, serially, caches forever. Never bulk-scrape (ADR-020).
+- **Sentinels, not nulls:** `report_year` 1753 (SQL Server) and 1899 (Excel) — floor is 1930; `maxdepth` ±999/±9999 — cap 9000. Quarantine into `rejected_rows`, never drop.
 - **`keywords` is a 1,161-term controlled vocabulary, 98.8% coverage.** This — not the LLM — is the zero-hallucination backbone. v1 ships with no LLM.
 - **Layer 28 is collars only — no assays.** Don't promise assays in v1.
 - Licence: **CC BY 4.0**, attribution *"Based on Department of Mines, Petroleum and Exploration material"* must be visible in UI and exports
 - Coordinates are WGS84; convert to MGA only on export
 - Data updates weekly
+
+## Where Phase 2 stands
+
+Built as the learning vehicle, not a business (ADR-008 — NextMaps already sells this).
+The document is at `/b/<id>` (server-rendered from `briefs.result`, never silently
+regenerated — ADR-018); `web/lib/brief.ts` builds it; `web/app/BriefDocument.tsx` renders
+it. Coverage grid = squares in the local MGA zone, centroid rule (ADR-019). All prose is
+templated (ADR-021). Seeded permalinks: `/b/super-pit`, `/b/boddington`, `/b/tropicana`,
+`/b/mt-keith`. **Not deployed; do not deploy without Roshan's explicit go-ahead.**
 
 ## Stack decisions (made — don't relitigate)
 

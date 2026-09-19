@@ -76,10 +76,20 @@ dpxe_rep, extract_date, digital_file, is_shaped
 ```
 
 **`abstract` is `varchar(250)` and truncated mid-word** — in the API *and* the DASC bulk GDB
-(verified 19 Sep 2026). The full abstract is behind the `dpxe_abs` URL, one HTTP fetch per
-report. It is genuinely excellent (~900–1,200 chars, GSWA-written), but it is not free: fetch
-lazily for reports inside a user's polygon and cache permanently. **`keywords`** (1,161 terms,
-98.8% coverage) is the structured, no-LLM backbone.
+(verified 19 Sep 2026). 35,592 of 118,834 hit the limit. The full abstract is behind the
+`dpxe_abs` URL (`…/WAMEX/ExternalTool/CreateReportAbstractDialog?aNumber=N`), one HTTP fetch
+per report: server-rendered HTML with the text in `<div class="htmlTextContainer">`, followed
+by `Prospects:` and `Assays:` lines and a per-report DRILLING SUMMARY table. Fetch lazily for
+reports inside a user's polygon and cache permanently (ADR-007, ADR-020).
+
+**The abstract field is empty for almost everything since 2015** (verified 19 Sep 2026):
+coverage is 94–100% for every five-year band to 2014, then 3–5%. **26,760 post-2014 reports
+have no abstract in bulk.** GSWA stopped writing them. The per-report page still has one —
+a structured *company-written* abstract (Location / Geology / Work Done / Results /
+Conclusions & Recommendations / Prospects / Assays), often several thousand characters with
+drill intercepts. See `docs/03-concepts/04-reading-a-wamex-abstract.md`.
+
+**`keywords`** (1,161 terms, 98.8% coverage) is the structured, no-LLM backbone.
 
 Sample record (anumber 1):
 ```
@@ -166,3 +176,8 @@ once you've verified the join keys yourself.
 | Weekly updates | Scheduled refresh; store `extract_date` |
 | Department renames | Keep the attribution string in one config value |
 | Government already ships a viewer | See the honesty note in `BUILD.md` §1 |
+| `report_year = 1753` (15,300 rows) | SQL Server `datetime` floor = NULL. Recover from `date_from` (99.8%) |
+| `report_year = 1899` (10 rows) | Excel epoch (1899-12-30). Same recovery. Valid floor is **1930**; oldest genuine report is 1935 |
+| `maxdepth = -999 / -9999 / 9999` | "Unknown". NULL it, quarantine the row. Deepest genuine hole is 4,431 m; cap at 9000 |
+| 27,409 holes at ~106°E, −10.5°S | Christmas Island — WA-administered, genuine. Bounds are 96–130°E, −36 to −9°S |
+| Layer 22 rows are 5.2× exact duplicates | Bad upstream join. `COUNT(DISTINCT anumber)` always; 615,050 rows = 118,834 reports |

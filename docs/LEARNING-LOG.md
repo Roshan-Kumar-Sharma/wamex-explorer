@@ -4,6 +4,119 @@ Session by session: what we did, what broke, what it taught. Newest first.
 
 ---
 
+## 2026-09-19 (evening) — Phase 2: the brief becomes a document
+
+### What we did
+
+The map now produces a **document**. Draw an area → "Save & share as document" → a
+permalink like `/b/super-pit` that renders the ground history as a page: at a glance,
+exploration timeline, drilling summary, commodity focus over time, what the record does
+not show, full report inventory, provenance footer. Still no LLM (ADR-021): every
+sentence is a template filled from `GROUP BY`, every abstract is verbatim with its
+A-number.
+
+```
+psql $DSN -f sql/020_phase2.sql          # briefs table, abstract_fetch_error column
+cd web && npm run dev
+node scripts/seed-briefs.mjs             # /b/super-pit, /b/boddington, /b/tropicana, /b/mt-keith
+```
+
+| Piece | Where | Note |
+|---|---|---|
+| Brief builder | `web/lib/brief.ts` | extracted from the route; 19 queries on one client |
+| Timeline, method×decade, depth, deepest hole | `lib/brief.ts` | deepest hole is cited to its A-number |
+| Coverage grid | `lib/brief.ts` → `coverage` | square grid in MGA zone, 3 tiers, drawn on the map |
+| Full abstracts | `lib/abstract.ts`, `/api/abstract` | serial, 600 ms gap, cached forever |
+| Permalinks | `/api/briefs`, `/b/[id]`, `lib/briefId.ts` | id = hash of polygon + filters |
+| Document | `app/BriefDocument.tsx` | server-rendered, printable |
+| Famous ground | `web/scripts/seed-briefs.mjs` | four boxes, each verified by dominant operator |
+
+Timings: Golden Mile box (159 km², 504 reports, 12k holes) **288 ms**; a 1°×1° box
+(10,822 reports, 357k holes) **2.9 s** — over the 2 s target at that extreme; fine at
+prospect scale.
+
+### What we learned
+
+**1. GSWA stopped writing abstracts in 2014, and the bulk data hides it.** Coverage of the
+`abstract` field: 94–100% for every five-year band to 2014, then **3–5%**. 26,760 reports
+since 2015 have no abstract in the bulk export. But the per-report page has one — a
+structured, *company-written* abstract (Location / Geology / Work Done / Results /
+Conclusions / Prospects / Assays) that for A138136 runs to 7,000 characters and lists
+every drilling programme's best intercept. So the lazy fetcher (ADR-007) is not a
+nicety for truncated text; it is the *only* route to anything about the last decade, and
+what it returns is most of what Phase 3 wanted from PDFs. Written up in
+[03-concepts/04-reading-a-wamex-abstract.md](03-concepts/04-reading-a-wamex-abstract.md).
+
+**2. Two more sentinels, from two more systems.** `report_year = 1899` on 10 reports whose
+titles say 2012–14: **1899-12-30 is Excel's day zero.** The Phase 0 floor of 1880 let it
+through; nothing genuine exists before 1935, so the floor is now 1930. And `maxdepth =
+9999` on 64 holes — the positive twin of the −999 we already caught. The deepest genuine
+hole is 4,431 m (a Canning Basin petroleum well filed under a minerals report), so the
+cap is 9000. Three sentinel families now: SQL Server's 1753, Excel's 1899, and ±9999.
+*Lesson: every upstream system leaves its own fingerprint for "unknown". Look at the
+extremes of every numeric column before trusting them.*
+
+**3. A query 20× slower than its parts means the planner did something to the parts.**
+The coverage query was 0.4 s in a psql prototype and 9 s in the app. `EXPLAIN (ANALYZE)`
+showed `loops=301`: the aggregate CTE, referenced once, was inlined under a nested loop
+and re-run per grid cell. `AS MATERIALIZED` fixed it. Before that, a different 9 s: an
+`ST_Transform(ST_Expand(…))` expression inline in a join condition is not a constant to
+the planner, so it scanned and transformed all 3.4M points. Moving it to a CTE column let
+the GIST index work. Both in
+[03-concepts/05-coverage-and-what-was-never-tested.md](03-concepts/05-coverage-and-what-was-never-tested.md).
+
+**4. Coverage numbers depend on rules you must print.** Same Golden Mile box: 20%
+undrilled with 750 m hexagons, 34% with clipped 750 m squares (edge slivers counted),
+33% with squares under the centroid rule. None is wrong; each answers a differently
+worded question. The document prints cell size, cell count, the centroid rule and the
+"any hole anywhere in the cell" caveat, because a percentage without them is a number
+without a meaning.
+
+**5. The grid looks tilted on the map, and it should.** Squares aligned to MGA grid north
+are rotated relative to lat/long by the **grid convergence** — up to ~3° at a zone edge.
+A drill grid laid out in MGA has the same tilt.
+
+**6. A server component cannot import a function from a `"use client"` file.** Next.js
+refuses at render time ("attempted to call isTruncated() from the server"). Shared helpers
+go in `lib/`, not beside the component. Same family: route files may export only handlers,
+so a constant exported from `route.ts` breaks the build.
+
+**7. The brief writes history you can check.** The Golden Mile timeline shows gold in 1937,
+WMC through the 60s–80s, then a cluster of nickel explorers 1967–74 — INCO, International
+Nickel, Tasminex, Australian Selection — before gold returns in the 80s. That cluster is
+the **Poseidon nickel boom** (1969–70) appearing in a `GROUP BY`. Tropicana shows 4,260
+aircore holes averaging 32 m before RC and diamond — a greenfields discovery under sand
+cover, drilled the way you drill under cover. Neither story was written; both were
+counted.
+
+### Verified
+
+- [x] Same polygon → same permalink id (idempotent `POST /api/briefs`)
+- [x] `/b/<id>` renders the stored result; `/?b=<id>` reopens the polygon and runs live
+- [x] Coverage: 326 cells rendered on the map, 116 undrilled, 14,469 holes in view
+- [x] Abstract fetch: 1.5 s first call, cache on second, 404 on unknown A-number
+- [x] All four famous-ground boxes verified by dominant operator before seeding
+- [x] Oldest report 1935; deepest hole 4,431 m; 0 rows outside the new floors
+- [x] `npm run build`, `tsc`, `eslint` clean
+
+### Open / not done
+
+- 1°×1° brief is 2.9 s; the 18 non-coverage queries each redo the spatial join.
+  Materialising the intersecting A-number set once would cut most of it.
+- Per-report DRILLING SUMMARY table on the abstract page is parsed away, not stored.
+- Stored brief is ~400 KB; the coverage grid geometry is most of it (ADR-018).
+- `WAMEX_CONTACT` env var is unset locally; the User-Agent falls back to the repo URL.
+- No static map image in the document; "Open on the map" is the round trip.
+- Not deployed. Nothing public.
+
+### Next
+
+- Publish the cleaned corpus (Option 4) — now including the two new sentinel rules
+- Weekly refresh, and the question of what a refresh does to stored briefs (ADR-018)
+- Deploy: Hetzner + R2, only with Roshan's go-ahead
+
+---
+
 ## 2026-09-19 (afternoon) — Phase 1: all of Western Australia
 
 ![All WA drillholes](images/phase1-all-wa-drillholes.png)
