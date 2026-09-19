@@ -34,27 +34,46 @@ abstracts are not machine-generated and not company marketing. A government geol
 read the report and summarised it in a consistent house style. See
 [data findings](../01-research/02-data-findings.md).
 
-## 2. Why one report has many polygons
+## 2. Why layer 22 has 615,050 rows but only 118,834 reports
 
-A single annual report often covers **many tenements at once**. Layer 22 stores one row
-per *polygon*, not per report. In our Kalgoorlie test box:
+The spatial layer and the DASC bulk file both contain **615,050 rows**. There are only
+**118,834 distinct A-numbers**. The average report appears **5.18 times**, never more
+than 6.
+
+The first, natural explanation — "one report covers many tenements, so it gets one row
+per polygon" — turned out to be **wrong**. When the bulk file was loaded and inspected:
 
 ```
-2,648 polygon rows  →  504 unique anumbers   (5.3× duplication)
+108,522 of 108,523 shaped reports have exactly ONE distinct geometry
+duplicate rows are byte-identical: same item_no, same URL, same date, same shape
 ```
 
-**Implication:** every count you show a user must be `COUNT(DISTINCT anumber)`. If you
-report "2,648 reports cover this ground" you are wrong by 5×, and a geologist will spot
-it immediately. This is a credibility-level bug, not a cosmetic one.
+They are simply **exact duplicate rows** — almost certainly a one-to-many join left in
+the government's export query. Every published "615,050 reports" figure, including the one
+this project started with, is counting those duplicates.
 
-Look at a real title to see why:
+**Implications:**
+
+- The real corpus is **~119k reports**, not 615k. Smaller, and still the largest open
+  exploration-report set in the country.
+- `COUNT(DISTINCT anumber)` is still mandatory everywhere. Reporting "2,648 reports cover
+  this ground" when it's 504 is a credibility-level bug, whatever the cause of the
+  duplication.
+- `report_geometries` holds one MultiPolygon per report. A single report *does* cover many
+  tenements — but that shows up as **many parts inside one MultiPolygon**, not many rows.
+
+Look at a real title to see the many-tenements reality:
 
 ```
 Mount Monger Project, Annual Report (17 vols) for the period 01/05/1992 to 30/04/1993,
 E15/317-318; GML26/6912; M25/25; M26/148...M26/417; P25/919...P25/1248; P26/1698...P26/2410
 ```
 
-One A-number. Seventeen volumes. Dozens of tenements. Each gets a polygon.
+One A-number. Seventeen volumes. Dozens of tenements. **One row, one MultiPolygon.**
+
+*The lesson worth keeping: a plausible explanation for a data quirk is not the same as a
+verified one. The first explanation fit the numbers and the domain; only loading the
+data and checking `count(DISTINCT geometry)` per report showed it was wrong.*
 
 ## 3. Why the data is messy — and it is messy
 

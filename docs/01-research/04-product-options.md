@@ -96,7 +96,7 @@ a geologist collaborator to be defensible.** Don't ship it solo.
 ## Option 4 — publish the open WAMEX corpus ⭐
 
 **The pitch:** nobody has ever published a cleaned, deduplicated, joined WAMEX dataset.
-Do it. 615,050 reports with full abstracts (via `dpxe_abs`), the 157+ term controlled
+Do it. 118,834 reports with full abstracts (via `dpxe_abs`), the 157+ term controlled
 vocabulary, drillhole joins on `anumber`, normalised commodities, quarantined bad rows —
 on HuggingFace, with a data paper and a reproducible pipeline.
 
@@ -119,7 +119,7 @@ It is also **the ideal SWUNG post**: a free dataset is a gift, not a pitch. Per 
 reply-generating thing you can post.
 
 Secondary angle: the `keywords` vocabulary is a **ready-made multi-label classification
-benchmark** — 615k documents, curated labels, 98.8% coverage. Rare and genuinely useful
+benchmark** — 119k documents, curated labels, 98.8% coverage. Rare and genuinely useful
 to ML researchers.
 
 ---

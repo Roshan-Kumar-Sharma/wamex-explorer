@@ -44,7 +44,7 @@ Also available: **WFS** and **WMS** at `.../Industry_and_Mining_WFS/MapServer/WF
 | ID | Layer | Geometry | **Verified count** |
 |---|---|---|---|
 | **28** | Mineral Exploration Drillholes (open file) (DMIRS-046) | Point | **3,465,810** |
-| **22** | Mineral exploration reports (WAMEX) (DMIRS-033) | Polygon | **615,050** |
+| **22** | Mineral exploration reports (WAMEX) (DMIRS-033) | Polygon | **615,050 rows = 118,834 reports** (rows are ~5.2× exact duplicates; see `docs/LEARNING-LOG.md`) |
 | 3 | Mining Tenements (DMIRS-003) | Polygon | — |
 | 1 | DMIRS Core Library Drill Holes (DMIRS-004) | Point | 4,130 |
 | 35/36/37 | Historical Exploration Activity (points/lines/polygons) | Mixed | — |
@@ -75,9 +75,11 @@ keywords, target_commodity, date_released, item_no, dpxe_abs,
 dpxe_rep, extract_date, digital_file, is_shaped
 ```
 
-**`abstract` is plain text and already populated.** This is the single most important fact for the
-product: **615,050 text abstracts, no OCR required.** You do not need to process a single PDF to ship
-the first useful version.
+**`abstract` is `varchar(250)` and truncated mid-word** — in the API *and* the DASC bulk GDB
+(verified 19 Sep 2026). The full abstract is behind the `dpxe_abs` URL, one HTTP fetch per
+report. It is genuinely excellent (~900–1,200 chars, GSWA-written), but it is not free: fetch
+lazily for reports inside a user's polygon and cache permanently. **`keywords`** (1,161 terms,
+98.8% coverage) is the structured, no-LLM backbone.
 
 Sample record (anumber 1):
 ```

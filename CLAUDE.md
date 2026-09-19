@@ -33,9 +33,10 @@ Build citations in from day one. Trust cannot be retrofitted.
 
 ## Key facts
 
-- **3,465,810** open-file drillholes (SLIP layer 28), **615,050** WAMEX reports (layer 22)
+- **3,466,691** open-file drillholes (SLIP layer 28); **118,834** unique WAMEX reports (layer 22 has 615,050 rows, but they are ~5× *exact duplicates* — a bad join in the upstream export. Always `COUNT(DISTINCT anumber)`.)
 - **`anumber` joins holes to reports** — the most important relationship in the dataset
-- **Layer 22's `abstract` is plain text, already populated.** No OCR needed to ship. This is the unlock.
+- **Layer 22's `abstract` is `varchar(250)`, truncated mid-word** — in both the API and the DASC bulk file. The full abstract (~900–1,200 chars, GSWA-written, excellent) is behind the per-report `dpxe_abs` URL. Fetch lazily, cache forever, never bulk-scrape.
+- **`keywords` is a 1,161-term controlled vocabulary, 98.8% coverage.** This — not the LLM — is the zero-hallucination backbone. v1 ships with no LLM.
 - **Layer 28 is collars only — no assays.** Don't promise assays in v1.
 - Licence: **CC BY 4.0**, attribution *"Based on Department of Mines, Petroleum and Exploration material"* must be visible in UI and exports
 - Coordinates are WGS84; convert to MGA only on export

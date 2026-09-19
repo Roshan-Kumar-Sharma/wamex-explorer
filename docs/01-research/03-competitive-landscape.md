@@ -130,7 +130,7 @@ This is the useful output of all the above.
 | Gap | Evidence | Hard? |
 |---|---|---|
 | **Multi-state open-file synthesis** | NextMaps: WA only. GroundSleuth: WA only. SA (SARIG), QLD (GSQ CKAN API), NT, NSW all separate | Yes — and that's the moat |
-| **Open, cleaned WAMEX research corpus** | No public dataset exists. 615k GSWA-written abstracts + controlled vocabulary is a unique NLP resource | No |
+| **Open, cleaned WAMEX research corpus** | No public dataset exists. 119k GSWA-written abstracts + controlled vocabulary is a unique NLP resource | No |
 | **Rigorous coverage-gap computation** | Everyone *mentions* thin evidence in prose; nobody publishes a defensible statewide under-tested raster | Medium |
 | **Open-source mining data interchange** | Format conversion is a daily tax; tooling is proprietary and expensive | Medium |
 

@@ -65,7 +65,7 @@ vocabulary supports a genuinely useful factual brief **with no LLM at all**. So:
 - **Cache by polygon hash** (`CLAUDE.md`). Famous ground gets requested repeatedly; the
   pre-generated briefs from `BUILD.md` §7 are cached forever by construction.
 
-The real cost risk is not price per call — it's an accidental loop over 615k reports.
+The real cost risk is not price per call — it's an accidental loop over 119k reports.
 **Put a hard cap on reports-per-brief and a monthly spend ceiling in code, not in
 intentions.**
 

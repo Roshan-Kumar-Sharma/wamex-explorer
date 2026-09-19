@@ -49,12 +49,12 @@ summarisation, which is both cheaper and far less hallucination-prone.
 |---|---|---|
 | Corpus source | layer 22 `abstract` field | per-A-number fetch via `dpxe_abs` |
 | Corpus quality | assumed good, actually fragments | **genuinely excellent, ~900–1,200 chars** |
-| Acquisition cost | free with the bulk pull | **615k HTTP fetches** (or a DASC bulk file) |
+| Acquisition cost | free with the bulk pull | **119k HTTP fetches** (or a DASC bulk file) |
 
 **Action:** before writing any scraper, check whether the DASC bulk WAMEX download
-carries the untruncated abstract. A one-off file beats 615k requests against a government
+carries the untruncated abstract. A one-off file beats 119k requests against a government
 server. If it doesn't, fetch lazily — only for A-numbers inside a user's polygon, cached
-permanently. Never bulk-scrape 615k URLs; it's rude, slow, and probably rate-limited.
+permanently. Never bulk-scrape 119k URLs; it's rude, slow, and probably rate-limited.
 
 > **Etiquette note:** this is a free public service run by a government department. Rate
 > limit, set a real User-Agent with contact details, and prefer bulk downloads. Getting
@@ -88,20 +88,30 @@ on top of a factual base.
 
 This inverts the build order in `BUILD.md`, and it inverts it in the safer direction.
 
-## Finding 3 — 5.3× polygon duplication
+## Finding 3 — 5.3× row duplication (and the first explanation was wrong)
 
 ```
-2,648 polygon rows  →  504 unique anumbers
+2,648 polygon rows  →  504 unique anumbers        (Kalgoorlie box, REST API)
+615,050 rows        →  118,834 unique anumbers    (all WA, DASC bulk GDB)
 ```
 
-One report covers many tenements; layer 22 stores one row per polygon.
+**First explanation (wrong):** one report covers many tenements, so it gets one row per
+polygon. It fit the numbers and the domain.
 
-**Every user-facing count must be `COUNT(DISTINCT anumber)`.** Reporting "2,648 reports"
-over-counts by 5× and would be spotted instantly by anyone who knows the ground. In a
-product whose entire value proposition is trust, that is a fatal-class bug.
+**What the bulk data showed:** 108,522 of 108,523 shaped reports have exactly **one**
+distinct geometry, and the duplicate rows are byte-identical — same `item_no`, same URL,
+same date, same shape. They are exact duplicates, almost certainly a one-to-many join left
+in the upstream export. Every published "615,050 reports" figure is counting them.
 
-Schema consequence: split into `reports` (one row per A-number) and `report_geometries`
-(many rows, FK to A-number). Don't mirror the flat API shape.
+**The real corpus is ~119k reports.** Multi-tenement coverage is real, but it lives as
+many parts inside one MultiPolygon, not as many rows.
+
+**Every user-facing count must still be `COUNT(DISTINCT anumber)`.** Reporting "2,648
+reports" over-counts by 5× and would be spotted instantly. In a product whose entire value
+proposition is trust, that is a fatal-class bug — whatever the cause of the duplication.
+
+Schema consequence: `reports` (one row per A-number) and `report_geometries` (one
+MultiPolygon per report, with room for the rare exception). Don't mirror the flat shape.
 
 ## Finding 4 — real data-quality defects exist
 
@@ -139,7 +149,7 @@ way, not the 56.7 GB downhole set.
 |---|---|---|
 | 1 | Abstract truncated at 250; full text behind per-report URL | Corpus acquisition is now a real task, not free |
 | 2 | `keywords` is a 98.8%-complete controlled vocabulary | **Ship a factual v1 with no LLM at all** |
-| 3 | 5.3× polygon duplication | `COUNT(DISTINCT anumber)` everywhere; split the schema |
+| 3 | 5.2× row duplication — exact duplicates, not one-per-tenement; real corpus ~119k reports | `COUNT(DISTINCT anumber)` everywhere; split the schema |
 | 4 | `report_year` = 1753 exists | Validate + quarantine on ingest |
 | 5 | Geochemistry downloadable (56.7 GB / 4.1 GB) | Assays are a Phase, not an impossibility |
 

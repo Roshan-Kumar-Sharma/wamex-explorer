@@ -118,7 +118,7 @@ behind a per-report URL in `dpxe_abs`.
 fetch per-A-number on demand for reports inside a user's polygon, and cache permanently
 (`reports.abstract_fetched_at`).
 
-**Why.** 615k requests against a free government service is rude, slow, probably rate
+**Why.** 119k requests against a free government service is rude, slow, probably rate
 limited, and risks getting blocked — which would end the project. Rate limit, set a real
 User-Agent with contact details.
 

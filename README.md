@@ -4,7 +4,7 @@ Draw a polygon anywhere in Western Australia. Get a written history of everythin
 ground — every drillhole, every exploration report, every company that tried and what they concluded.
 
 Built on WA's free, public, CC BY 4.0 open-file exploration data:
-**3.46 million drillholes** and **615,050 exploration reports** going back to 1970.
+**3.47 million drillholes** and **118,834 exploration reports** going back to 1970.
 
 | File | What |
 |---|---|
@@ -14,7 +14,7 @@ Built on WA's free, public, CC BY 4.0 open-file exploration data:
 | `docs/` | **Learning-first documentation** — domain primer, glossary, verified research, architecture, concepts |
 
 **Status:** **Phase 0 working.** Draw a box near Kalgoorlie, get a cited ground-history
-brief in under a second. 357,483 drillholes + 10,899 reports loaded locally.
+brief in under a second. Phase 1 in progress: all 118,834 WA reports loaded; drillholes next.
 See [docs/02-architecture/04-running-locally.md](docs/02-architecture/04-running-locally.md).
 
 ⚠️ **Read [`docs/01-research/03-competitive-landscape.md`](docs/01-research/03-competitive-landscape.md)

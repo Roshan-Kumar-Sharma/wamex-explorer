@@ -146,7 +146,7 @@ cd web && npm i maplibre-gl pmtiles terra-draw @tanstack/react-query
 | Tile server (Martin, pg_tileserv) | PMTiles is static. A server is a thing to run, pay for, and monitor |
 | deck.gl (in v1) | No native PMTiles layer; MapLibre covers it. Revisit for 3D traces |
 | Neon / Supabase free tier | Both 0.5 GB in 2026 — verified. Too small |
-| Elasticsearch | Postgres FTS + `pg_trgm` is enough for 615k abstracts. Don't add a second datastore |
+| Elasticsearch | Postgres FTS + `pg_trgm` is enough for 119k abstracts. Don't add a second datastore |
 | An ORM in the API | The queries are hand-written PostGIS. An ORM fights you |
 | Live SLIP queries per request | `CLAUDE.md` forbids it, correctly — slow, 10k-capped, and rude to a government service |
 

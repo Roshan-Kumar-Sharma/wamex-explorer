@@ -172,7 +172,7 @@ ORDER BY reports DESC;
 ### Why `abstract_full` is nullable and timestamped
 
 We fetch it lazily, per A-number, only for reports inside a user's polygon — then cache
-forever. `abstract_fetched_at` drives that cache. **Do not bulk-scrape 615k URLs** against
+forever. `abstract_fetched_at` drives that cache. **Do not bulk-scrape 119k URLs** against
 a free government service.
 
 ---
@@ -201,10 +201,10 @@ keyword is the difference between a credible tool and an embarrassing one.
 | Table | Rows | Est. size |
 |---|---|---|
 | `drillholes` | 3.47M | ~600 MB + ~250 MB GIST index |
-| `report_geometries` | ~3.2M | ~1.5 GB (polygons are fat) |
-| `reports` | 615k | ~400 MB with full abstracts |
-| `report_keywords` | ~5M | ~200 MB |
-| **Total** | | **~3.5 GB** |
+| `report_geometries` | ~109k | ~400 MB (multipolygons, one per report) |
+| `reports` | 119k | ~100 MB with full abstracts |
+| `report_keywords` | ~560k | ~30 MB |
+| **Total** | | **~1.5 GB** |
 
 This is why the 0.5 GB free tiers don't work. See [cost model](03-cost-model.md).
 

@@ -117,7 +117,7 @@ Two consequences that matter for us:
    effectively "no exploration conducted this year." The controlled vocabulary actually
    has a term for that: `No exploration` (25 occurrences in our Kalgoorlie test box).
 2. **After a confidentiality period the reports become "open file"** — public, free,
-   CC BY 4.0. 615,050 of them. This is a genuinely unusual public good; most
+   CC BY 4.0. 118,834 of them. This is a genuinely unusual public good; most
    jurisdictions are not this open.
 
 **These are someone's contemporaneous opinions, under commercial pressure, using the
