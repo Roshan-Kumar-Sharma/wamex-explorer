@@ -20,3 +20,13 @@ export function methodName(code: string): string {
   const label = HOLETYPE_LABELS[code] ?? code;
   return /^[A-Z]{2}/.test(label) ? label : label.charAt(0).toLowerCase() + label.slice(1);
 }
+
+/** MGA zone for a longitude: 6-degree zones numbered from 180W. WA is 49-52. */
+export function mgaZone(lon: number): number { return Math.floor((lon + 180) / 6) + 1; }
+
+/** "top 1%" / "top 25%" / "below the median" from a 0-100 percentile rank. */
+export function rankPhrase(rank: number): string {
+  if (rank >= 99) return "top 1%";
+  if (rank >= 50) return `top ${100 - rank}%`;
+  return `below the median (${rank}th percentile)`;
+}

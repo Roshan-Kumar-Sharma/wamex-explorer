@@ -6,8 +6,6 @@ import type { Filters } from "@/lib/filters";
 /** The inventory a stored brief carries. The document says when it was cut. */
 export const STORED_REPORTS_LIMIT = 500;
 
-/** MGA zone for a longitude: 6-degree zones numbered from 180W. WA is 49-52. */
-export function mgaZone(lon: number): number { return Math.floor((lon + 180) / 6) + 1; }
 
 export type StoredBrief = {
   id: string;

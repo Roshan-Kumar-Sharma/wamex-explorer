@@ -1,7 +1,6 @@
 import { ATTRIBUTION, HOLETYPE_LABELS, LICENCE_URL, SOURCE_NOTE } from "@/lib/constants";
 import { describe } from "@/lib/filters";
-import { mgaZone } from "@/lib/briefs";
-import { methodName, needsFetch, reportUrl } from "@/lib/reports";
+import { methodName, mgaZone, needsFetch, rankPhrase, reportUrl } from "@/lib/reports";
 import ReportItem from "./ReportItem";
 import AbstractsLoader from "./AbstractsLoader";
 import type { Brief } from "./types";
@@ -10,6 +9,8 @@ const n = (x: number | null | undefined) => (x ?? 0).toLocaleString();
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
 const lower = (s: string) => s.toLowerCase();
 const EXCLUDED_FROM_DRILLING = ["WATER_BORE", "COSTEAN", "UNKNOWN", "OTHER"];
+
+const density = (v: number) => (v >= 100 ? Math.round(v).toLocaleString() : v >= 10 ? v.toFixed(0) : v.toFixed(1));
 
 function H2({ num, children, note }: { num: number; children: React.ReactNode; note?: string }) {
   return (
@@ -181,6 +182,36 @@ export default function BriefDocument({ brief, id, title, createdAt, permalink }
           This says nothing about the ground itself — see section 5 on what an absence can and cannot mean.
         </p>
       )}
+
+      {brief.baseline && (() => {
+        const b = brief.baseline;
+        const m = b.metrics;
+        return (
+          <div className="mt-4 rounded-md border border-stone-200 bg-stone-50 px-4 py-3 text-[12.5px] leading-relaxed">
+            <div className="text-[10px] uppercase tracking-wide text-stone-400">Against the rest of WA</div>
+            {m.holes_per_km2.value > 0 ? (
+              <p className="mt-1">
+                This area has <b>{density(m.holes_per_km2.value)}</b> exploration holes, <b>{density(m.metres_per_km2.value)}</b> m
+                and <b>{density(m.reports_per_km2.value)}</b> reports per km². Among the <b>{n(b.n_cells)}</b> squares of{" "}
+                {b.cell_km} km across Western Australia that contain any exploration drilling, that is the{" "}
+                <b>{rankPhrase(m.holes_per_km2.rank)}</b> for holes, <b>{rankPhrase(m.metres_per_km2.rank)}</b> for metres
+                and <b>{rankPhrase(m.reports_per_km2.rank)}</b> for reports.
+              </p>
+            ) : (
+              <p className="mt-1">
+                This area has <b>no exploration drilling</b> on record, so it is not comparable with the <b>{n(b.n_cells)}</b>{" "}
+                {b.cell_km} km squares across Western Australia that have some. Its <b>{density(m.reports_per_km2.value)}</b> reports
+                per km² would rank in the <b>{rankPhrase(m.reports_per_km2.rank)}</b> of those.
+              </p>
+            )}
+            <p className="mt-1 text-[11px] text-stone-500">
+              Median drilled {b.cell_km} km square: {density(m.holes_per_km2.median)} holes, {density(m.metres_per_km2.median)} m,{" "}
+              {density(m.reports_per_km2.median)} reports per km². Cells with no drilling at all — most of the state — are not in
+              the comparison. Cell size chosen to match this area&apos;s scale.
+            </p>
+          </div>
+        );
+      })()}
 
       {/* ── 2. Exploration timeline ────────────────────────────────────── */}
       <H2 num={2} note="Who held reports over this ground, when, and what they were looking for. Commodities are the top three each operator listed as targets; holes are collars attributed to that operator name in the register.">

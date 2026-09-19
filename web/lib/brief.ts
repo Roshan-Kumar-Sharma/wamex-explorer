@@ -72,6 +72,15 @@ export async function buildBrief(
   const t0 = Date.now();
   const timings: number[] = [];
 
+  // Baseline percentile curves (sql/021_baselines.sql). Read outside the
+  // transaction so a missing table degrades to "no baseline", not an error.
+  let baselineRows: { cell_km: number; metric: string; n_cells: number; pct: number[] }[] = [];
+  if (isEmpty(filters)) {
+    try {
+      baselineRows = (await client.query(`SELECT cell_km, metric, n_cells, pct FROM baselines`)).rows;
+    } catch { baselineRows = []; }
+  }
+
   try {
     await client.query("BEGIN");
     await client.query(
@@ -314,6 +323,38 @@ export async function buildBrief(
     const dv: Date | null = dataVersion.rows[0]?.v ?? null;
     const s = summary.rows[0];
 
+    // Baseline: pick the cell size nearest this area's own scale (in log
+    // space), then rank each density against that size's percentile curve.
+    // Only for unfiltered briefs -- the population is unfiltered.
+    let baseline: Brief["baseline"] = null;
+    if (baselineRows.length && s.area_km2 > 0) {
+      const side = Math.sqrt(s.area_km2);
+      const sizes = [...new Set(baselineRows.map((r) => r.cell_km))];
+      const cell = sizes.reduce((best, k) =>
+        Math.abs(Math.log(k / side)) < Math.abs(Math.log(best / side)) ? k : best, sizes[0]);
+      const explM = holeTypes.rows
+        .filter((h) => EXPLORATION_HOLETYPES.includes(h.holetype))
+        .reduce((a, h) => a + (h.total_m ?? 0), 0);
+      const values: Record<string, number> = {
+        holes_per_km2: s.exploration_hole_count / s.area_km2,
+        metres_per_km2: explM / s.area_km2,
+        reports_per_km2: s.report_count / s.area_km2,
+      };
+      const metrics = {} as NonNullable<Brief["baseline"]>["metrics"];
+      let n = 0;
+      for (const r of baselineRows.filter((r) => r.cell_km === cell)) {
+        const v = values[r.metric];
+        if (v == null) continue;
+        n = r.n_cells;
+        let rank = 0;
+        for (let i = 0; i <= 100; i++) if (r.pct[i] <= v) rank = i;
+        metrics[r.metric as keyof typeof metrics] = {
+          value: v, median: r.pct[50], p90: r.pct[90], rank,
+        };
+      }
+      if (Object.keys(metrics).length === 3) baseline = { cell_km: cell, n_cells: n, metrics };
+    }
+
     return {
       summary: { area_km2: s.area_km2, report_count: s.report_count,
                  hole_count: s.hole_count, exploration_hole_count: s.exploration_hole_count },
@@ -355,6 +396,7 @@ export async function buildBrief(
         },
       },
       commodityByDecade: commodityByDecade.rows,
+      baseline,
       notRecorded: {
         commodities: notRecordedCommodities.rows.map((r) => r.name as string),
         methods: methodsNotUsed,

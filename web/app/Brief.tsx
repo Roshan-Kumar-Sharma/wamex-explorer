@@ -3,6 +3,7 @@
 import { ATTRIBUTION, HOLETYPE_LABELS, LICENCE_URL } from "@/lib/constants";
 import { type Filters, describe } from "@/lib/filters";
 import type { Brief } from "./types";
+import { rankPhrase } from "@/lib/reports";
 
 const n = (x: number | null | undefined) => (x ?? 0).toLocaleString();
 
@@ -131,6 +132,17 @@ export default function BriefPanel({
           <p className="mt-3 text-[12px] leading-relaxed text-stone-600">
             Recorded activity spans <b>{brief.period.first_year}–{brief.period.last_year}</b>
             {totalM > 0 && <> · <b>{n(totalM)} m</b> of exploration drilling</>}.
+          </p>
+        )}
+
+        {brief.baseline && (
+          <p className="mt-2 text-[12px] leading-relaxed text-stone-600" title={`Ranked against the ${brief.baseline.n_cells.toLocaleString()} ${brief.baseline.cell_km} km squares in WA that contain any exploration drilling`}>
+            {brief.baseline.metrics.holes_per_km2.value > 0 ? (
+              <>Drilling density is in the <b>{rankPhrase(brief.baseline.metrics.holes_per_km2.rank)}</b> of drilled ground in WA
+              at this scale; reports <b>{rankPhrase(brief.baseline.metrics.reports_per_km2.rank)}</b>.</>
+            ) : (
+              <>No exploration drilling on record here.</>
+            )}
           </p>
         )}
 

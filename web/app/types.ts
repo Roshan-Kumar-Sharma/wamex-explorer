@@ -53,6 +53,17 @@ export type Brief = {
     grid: GeoJSON.FeatureCollection<GeoJSON.Polygon | GeoJSON.MultiPolygon, { holes: number; deep: boolean; bedrock: boolean }>;
   };
   commodityByDecade: { name: string; decade: number; reports: number }[];
+  /**
+   * This area's densities ranked against every `cell_km` square in WA that
+   * contains at least one exploration hole (sql/021_baselines.sql). `rank`
+   * is the percentile (0-100) of drilled cells at or below this value. Null
+   * when filtered or when the baselines table has not been built.
+   */
+  baseline: {
+    cell_km: number; n_cells: number;
+    metrics: Record<"holes_per_km2" | "metres_per_km2" | "reports_per_km2",
+      { value: number; median: number; p90: number; rank: number }>;
+  } | null;
   /** From fixed lists: major commodities / exploration methods with zero records here. */
   notRecorded: { commodities: string[]; methods: string[] };
   filters: import("@/lib/filters").Filters;
