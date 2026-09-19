@@ -4,6 +4,79 @@ Session by session: what we did, what broke, what it taught. Newest first.
 
 ---
 
+## 2026-09-19 (night) — Research pass, then three things it asked for
+
+### What we did
+
+A first web-research pass on how this audience actually works
+([01-research/05-what-a-geologist-needs.md](01-research/05-what-a-geologist-needs.md)),
+then the three cheapest things it pointed at:
+
+1. **Per-report coverage** — each inventory entry says how much of the drawn area the
+   report's footprint covers and how big that footprint is (`coverage_pct`,
+   `footprint_km2`). A regional survey at 100% and 160,000 km² reads differently from a
+   prospect clipping the corner at <1% and 0.5 km².
+2. **Baselines** — `sql/021_baselines.sql` (36 s) stores percentile curves of holes,
+   metres and reports per km² over every 2/5/10/25 km square in WA that contains any
+   exploration hole. The brief picks the cell size nearest its own scale and says "top 1%
+   for holes". Unfiltered briefs only; areas with no drilling are "not comparable", not
+   ranked.
+3. **Section G exports** — `/api/briefs/:id/{timeline.csv,timeline.md,reports.csv,brief.md,holes.geojson}`.
+   The timeline now carries every operator's A-numbers, so the CSV *is* the "Previous
+   exploration activities" table the guideline asks for, with its citation column.
+
+Also: every commit rewritten to drop the co-author trailer (Roshan's call; backup branch
+kept), `WAMEX_CONTACT` set locally, and the confidentiality bullet now states the actual
+rules from the guideline.
+
+### What we learned
+
+**1. The department already named our product.** The reporting guideline's mandatory
+section list includes "G) Previous exploration activities … A table format is
+acceptable." Every one of ~108,000 reports has one, hand-compiled. Framing the timeline as
+*that table* changed what the export had to contain: A-numbers per row, or it is not a
+section G.
+
+**2. A number without a baseline is not information.** "12,387 holes" is a count;
+"top 1% of drilled 10 km squares in WA" is a judgement the reader can make. The
+population has to be stated (drilled ground only — most of WA is not drilled at all) and
+the cell size has to match the area's scale, otherwise a 2 km² prospect is compared with
+25 km cells and everything looks dense. ~9% of WA has any drilling at 2 km resolution
+(55,246 cells × 4 km²).
+
+**3. A client component must never import from a module that imports `pg`.** One
+`import { rankPhrase } from "./BriefDocument"` in the panel pulled `lib/briefs → lib/db →
+pg` into the browser bundle and broke *every* route with "Can't resolve 'fs'". Pure
+helpers live in `lib/reports.ts`; `lib/db.ts` is only ever imported from routes, server
+pages and `lib/brief*.ts`. (Second time this session a server/client boundary bit; the
+first was calling a client-file function from a server component.)
+
+**4. Operator names are not normalised.** `WESTERN MINING CORPORATION LTD` and `Western
+Mining Corporation Limited` are separate timeline rows, and the same string differs
+between `reports.operator` and `drillholes.operator` (WMC: 14 reports, 0 holes by name).
+Backlog: a normalisation pass (case, LTD/LIMITED/PTY, punctuation) with the raw string
+kept.
+
+**5. `bigint` comes out of `pg` as a string.** `objectid` in the GeoJSON was `"21942"`.
+Cast in SQL (`::int`) where the value fits.
+
+### Verified
+
+- [x] Golden Mile 159 km²: top 1% holes/metres/reports at 10 km; Mt Keith 110 km²: top
+      5% / top 2% / top 20% — deep nickel drilling by one operator, as expected
+- [x] Perth 84 km², 0 holes: "no exploration drilling — not comparable"; 7 reports
+- [x] All five exports download with attribution header, data version, permalink;
+      9,186 collars for the Super Pit box, cap untriggered
+- [x] Seeds regenerated; `npm run build`, `tsc`, `eslint` clean
+
+### Next
+
+- Backlog items 4–9 in the research doc: tenement selection (verify SLIP layer 3),
+  parse the abstract page's drilling/geochem/survey tables, surrender-only filter,
+  highlight a report's holes, operator-name normalisation, geologist review of seeds.
+
+---
+
 ## 2026-09-19 (evening) — Phase 2: the brief becomes a document
 
 ### What we did

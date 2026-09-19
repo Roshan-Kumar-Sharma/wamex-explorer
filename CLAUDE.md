@@ -50,7 +50,12 @@ The document is at `/b/<id>` (server-rendered from `briefs.result`, never silent
 regenerated — ADR-018); `web/lib/brief.ts` builds it; `web/app/BriefDocument.tsx` renders
 it. Coverage grid = squares in the local MGA zone, centroid rule (ADR-019). All prose is
 templated (ADR-021). Seeded permalinks: `/b/super-pit`, `/b/boddington`, `/b/tropicana`,
-`/b/mt-keith`. **Not deployed; do not deploy without Roshan's explicit go-ahead.**
+`/b/mt-keith`. Exports at `/api/briefs/:id/{timeline.csv,timeline.md,reports.csv,brief.md,holes.geojson}`.
+Baselines (`sql/021_baselines.sql`) rank an area against drilled ground across WA.
+**Framing:** the department mandates a "G) Previous exploration activities" section in
+every report — our timeline is that table, generated (see `docs/01-research/05-…`).
+**Not deployed; do not deploy without Roshan's explicit go-ahead. No Claude co-author
+trailer on commits.**
 
 ## Stack decisions (made — don't relitigate)
 

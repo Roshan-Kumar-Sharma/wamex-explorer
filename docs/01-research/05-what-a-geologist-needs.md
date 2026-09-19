@@ -125,12 +125,14 @@ Working assumptions, to be tested against real geologists (SWUNG, LinkedIn — B
 
 Ordered by value ÷ effort, as of 19 Sep 2026:
 
-1. Exact confidentiality wording in section 5 — *done*.
-2. Per-report **% of polygon covered** in the inventory and timeline; sort option by it.
-3. **Baselines**: WA-wide and regional (by 1:250k map sheet, or by 50 km hex) medians of
-   reports/km², holes/km², metres/km² over drilled ground; "vs median" beside the stats.
-4. **Section G export**: the timeline as Markdown/CSV in section-G shape; whole brief as
-   Markdown; A-number list as CSV; collars as GeoJSON (WGS84, stated).
+1. Exact confidentiality wording in section 5 — *done 19 Sep*.
+2. Per-report **% of polygon covered** and footprint size in the inventory — *done 19 Sep*.
+   Still open: a sort-by-coverage option.
+3. **Baselines** — *done 19 Sep* as percentile curves over drilled 2/5/10/25 km squares
+   (`sql/021_baselines.sql`), cell size matched to the area's scale. Regional (map-sheet)
+   baselines still open.
+4. **Section G export** — *done 19 Sep*: `/api/briefs/:id/timeline.csv|timeline.md|
+   reports.csv|brief.md|holes.geojson`, all with attribution.
 5. **Tenements**: verify SLIP layer 3 and DASC bulk tenements; "select tenement" mode;
    show tenement outlines under the polygon; live tenement numbers in the header.
 6. Parse the abstract page's **Drilling summary / Surface geochemistry / Surveys** tables
@@ -139,6 +141,10 @@ Ordered by value ÷ effort, as of 19 Sep 2026:
 8. Highlight one report's holes on the map from the inventory.
 9. Ask three geologists to check the four seeded briefs against what they know. Their
    corrections become the next version of this document.
+10. **Operator-name normalisation.** `WESTERN MINING CORPORATION LTD` / `Western Mining
+    Corporation Limited` / `WMC RESOURCES LTD` are one company to a reader; and the
+    string differs between the report and drillhole tables, so hole counts by operator
+    are undercounted. Normalise for grouping, keep the raw string for citation.
 
 ---
 

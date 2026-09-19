@@ -100,6 +100,12 @@ written. Apply it once (idempotent):
 psql postgresql://wamex:wamex@localhost:54329/wamex -f sql/020_phase2.sql
 ```
 
+Baselines for the "against the rest of WA" comparison (36 s; re-run after every refresh):
+
+```bash
+psql postgresql://wamex:wamex@localhost:54329/wamex -f sql/021_baselines.sql
+```
+
 Optional, in `web/.env.local` — who the department sees when we fetch an abstract
 (ADR-020). Falls back to the repo URL if unset:
 
@@ -164,6 +170,11 @@ curl -s http://localhost:3000/api/briefs/super-pit | python3 -m json.tool | head
 
 # one report's full abstract, fetched from DMPE on first call and cached after
 curl -s http://localhost:3000/api/abstract/40846
+
+# exports: section G table, inventory, whole brief, collars
+curl -sO -J http://localhost:3000/api/briefs/super-pit/timeline.csv
+curl -sO -J http://localhost:3000/api/briefs/super-pit/brief.md
+curl -sO -J http://localhost:3000/api/briefs/super-pit/holes.geojson
 ```
 
 In dev, `meta.timings` in the brief JSON is the wall time of each query in
