@@ -39,21 +39,27 @@ def ogrinfo(gdb: Path, layer: str | None = None, summary: bool = True) -> str:
 
 
 def layers(gdb: Path) -> list[str]:
-    out = ogrinfo(gdb)
-    return [ln.split(":", 1)[1].split("(")[0].strip()
-            for ln in out.splitlines() if ln.strip() and ln.strip()[0].isdigit() and ":" in ln]
+    """Parse layer names. GDAL prints either `1: Name (Type)` or `Layer: Name (Type)`
+    depending on version."""
+    import re
+    return re.findall(r"^(?:\d+|Layer): (\S+)", ogrinfo(gdb), re.M)
 
 
 def gdb_to_postgis(gdb: Path, layer: str, table: str, *, srs: str = "EPSG:4326",
-                   geom_name: str = "geom", extra: list[str] | None = None) -> None:
-    """Load one GDB layer into a PostGIS table, replacing it if present."""
+                   geom_name: str = "geom", fid_name: str = "ogc_fid",
+                   extra: list[str] | None = None) -> None:
+    """Load one GDB layer into a PostGIS table, replacing it if present.
+
+    With fid_name="objectid" the GDB's own OBJECTID values are preserved, which
+    keeps drillhole keys identical to the SLIP REST API's `objectid`.
+    """
     args = [
         "ogr2ogr", "-f", "PostgreSQL", f"PG:{PG_IN_DOCKER}",
         "/data/" + gdb.name, layer,
         "-nln", table, "-overwrite",
         "-t_srs", srs,
         "-lco", f"GEOMETRY_NAME={geom_name}",
-        "-lco", "FID=ogc_fid",
+        "-lco", f"FID={fid_name}", "-preserve_fid",
         "-lco", "SPATIAL_INDEX=NONE",     # we index after the transform, not the staging table
         "--config", "PG_USE_COPY", "YES",  # COPY is ~10x faster than INSERT
         "-progress",

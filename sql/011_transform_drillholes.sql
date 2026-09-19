@@ -10,18 +10,28 @@ INSERT INTO ingest_runs (layer, bbox) VALUES ('drillholes_gdb', 'all-WA');
 TRUNCATE drillhole_commodities, drillholes RESTART IDENTITY CASCADE;
 DELETE FROM rejected_rows WHERE source_layer = '28';
 
+-- Bounds include the Indian Ocean Territories: Christmas Island (105.6E, -10.5S)
+-- has a phosphate mine and 27,409 drillholes in this dataset; WA's mines
+-- department administers it. Cocos (Keeling) at 96.8E is included for safety.
 -- ── quarantine ───────────────────────────────────────────────────────────
 INSERT INTO rejected_rows (source_layer, source_id, reason, raw)
 SELECT '28', objectid::text,
        CASE WHEN geom IS NULL THEN 'missing_geometry'
-            WHEN NOT (ST_X(geom) BETWEEN 112 AND 130 AND ST_Y(geom) BETWEEN -36 AND -12)
+            WHEN NOT (ST_X(geom) BETWEEN 96 AND 130 AND ST_Y(geom) BETWEEN -36 AND -9)
                  THEN 'coordinates_outside_wa'
        END,
        jsonb_build_object('objectid', objectid, 'holeid', holeid, 'anumber', anumber,
                           'x', ST_X(geom), 'y', ST_Y(geom))
 FROM raw_drillholes
 WHERE geom IS NULL
-   OR NOT (ST_X(geom) BETWEEN 112 AND 130 AND ST_Y(geom) BETWEEN -36 AND -12);
+   OR NOT (ST_X(geom) BETWEEN 96 AND 130 AND ST_Y(geom) BETWEEN -36 AND -9);
+
+-- maxdepth of -999 / -9999 is a sentinel for "unknown". Logged, then NULLed
+-- below; the hole itself is real and kept.
+INSERT INTO rejected_rows (source_layer, source_id, reason, raw)
+SELECT '28', objectid::text, 'maxdepth_negative_sentinel',
+       jsonb_build_object('objectid', objectid, 'holeid', holeid, 'maxdepth', maxdepth)
+FROM raw_drillholes WHERE maxdepth < 0;
 
 -- ── drillholes ───────────────────────────────────────────────────────────
 INSERT INTO drillholes (objectid, holeid, collarid, anumber, holetype, holetype_std,
@@ -29,11 +39,11 @@ INSERT INTO drillholes (objectid, holeid, collarid, anumber, holetype, holetype_
 SELECT DISTINCT ON (r.objectid)
        r.objectid,
        nullif(trim(r.holeid), ''),
-       nullif(trim(r.collarid), ''),
+       r.collarid::text,
        r.anumber,
        nullif(trim(r.holetype), ''),
        coalesce(m.std, CASE WHEN nullif(trim(r.holetype), '') IS NULL THEN 'UNKNOWN' ELSE 'OTHER' END),
-       r.maxdepth,
+       CASE WHEN r.maxdepth < 0 THEN NULL ELSE r.maxdepth END,
        nullif(trim(r.operator), ''),
        nullif(trim(r.project), ''),
        r.period_from::date, r.period_to::date, r.extract_date::date,
@@ -41,7 +51,7 @@ SELECT DISTINCT ON (r.objectid)
 FROM raw_drillholes r
 LEFT JOIN holetype_map m ON m.raw = upper(trim(r.holetype))
 WHERE r.geom IS NOT NULL
-  AND ST_X(r.geom) BETWEEN 112 AND 130 AND ST_Y(r.geom) BETWEEN -36 AND -12
+  AND ST_X(r.geom) BETWEEN 96 AND 130 AND ST_Y(r.geom) BETWEEN -36 AND -9
 ORDER BY r.objectid;
 
 -- ── commodities ──────────────────────────────────────────────────────────

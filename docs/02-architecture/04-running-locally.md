@@ -1,6 +1,6 @@
 # Running it locally
 
-Phase 0. Everything runs on your machine; nothing is deployed.
+Everything runs on your machine; nothing is deployed.
 
 ---
 
@@ -10,7 +10,10 @@ Phase 0. Everything runs on your machine; nothing is deployed.
 - **Python 3.11+**
 - **Node 20+**
 
-Not needed yet: `ogr2ogr` and `tippecanoe` arrive in Phase 1 with the bulk ingest.
+For Phase 1: `brew install tippecanoe` (no dependencies). GDAL runs in Docker — see ADR-015.
+
+**Disk:** Phase 1 needs ~6 GB free at peak (two GDB zips, their extraction, staging
+tables, the export, and the tiles). Check `df -h` first.
 
 ## 1. Database
 
@@ -30,7 +33,32 @@ Check it:
 docker exec -i wamex-db psql -U wamex -d wamex -c "SELECT postgis_version();"
 ```
 
-## 2. Ingest
+## 2. Ingest — Phase 1 (all of WA)
+
+```bash
+cd ingest
+python3 -m venv .venv && ./.venv/bin/pip install -e .
+./.venv/bin/python run_phase1.py            # ~45 min, mostly download
+```
+
+Steps can be run individually: `--step download | load | transform | tiles`. Downloads
+resume. The transform is a full reload and idempotent.
+
+At the end it prints the env var to set:
+
+```bash
+echo "NEXT_PUBLIC_PMTILES_URL=/tiles/drillholes.pmtiles" > web/.env.local
+```
+
+Restart `npm run dev` after setting it — `NEXT_PUBLIC_*` is read at start.
+
+Then drop the staging tables to reclaim ~4.5 GB (they rebuild in 90 s from the zips):
+
+```sql
+DROP TABLE raw_drillholes, raw_wamex;
+```
+
+## 2b. Ingest — Phase 0 (Kalgoorlie only, via REST)
 
 ```bash
 cd ingest
@@ -93,8 +121,9 @@ curl -s -X POST http://localhost:3000/api/brief \
   -d '{"geometry":{"type":"Polygon","coordinates":[[[121.40,-30.80],[121.55,-30.80],[121.55,-30.70],[121.40,-30.70],[121.40,-30.80]]]}}' | python3 -m json.tool
 ```
 
-That exact box is the reference case: **12,396 drillholes, 504 reports** — matching the
-figure `DATA.md` measured directly against the live API.
+That exact box is the reference case: **504 reports** on either load path, and **12,396
+drillholes** from the REST API on 19 Sep (12,387 from the 14 Sep bulk file — the state
+gained 863 holes in between).
 
 ## Troubleshooting
 
@@ -105,6 +134,10 @@ figure `DATA.md` measured directly against the live API.
 | `Failed to load module script: text/html` | MapLibre worker not in `public/` — run `npm run sync:maplibre` |
 | `invalid reference to FROM-clause entry` | `FROM a, b JOIN c` parses as `a, (b JOIN c)`. Put real joins first, `CROSS JOIN aoi` last |
 | Ingest stalls | SLIP rate limiting. The client retries with backoff; leave `REQUEST_DELAY_S` alone |
+| DASC download at 20 KB/s | Normal from this network. It resumes; let it run. Don't run two at once |
+| `No space left on device` | Check `df -h`. `brew cleanup -s`, delete `data/dasc/<name>/` extractions, drop `raw_*` tables |
+| Map shows few points when zoomed in | Tiles built with default drop-rate. Rebuild: `run_phase1.py --step tiles` (ADR-016) |
+| Header says "Phase 0" | `NEXT_PUBLIC_PMTILES_URL` not set, or dev server not restarted after setting it |
 
 ## Resetting
 

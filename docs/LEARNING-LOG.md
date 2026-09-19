@@ -4,6 +4,110 @@ Session by session: what we did, what broke, what it taught. Newest first.
 
 ---
 
+## 2026-09-19 (afternoon) — Phase 1: all of Western Australia
+
+![All WA drillholes](images/phase1-all-wa-drillholes.png)
+
+*3,465,828 drillholes, one 254 MB PMTiles file. Blue = RC, teal = aircore, grey = RAB,
+red = diamond, amber = auger. The Pilbara is the blue cluster top-left; the Yilgarn
+greenstone belts are the NNW-trending lines through the centre; the deserts are empty.*
+
+### What we did
+
+```
+cd ingest && ./.venv/bin/python run_phase1.py      # download → load → transform → tiles
+echo "NEXT_PUBLIC_PMTILES_URL=/tiles/drillholes.pmtiles" > web/.env.local
+```
+
+| Step | Time | Result |
+|---|---|---|
+| Download WAMEX GDB (96 MB) + drillholes GDB (121 MB) | ~35 min | slow link, resumable |
+| ogr2ogr → `raw_wamex` | 70 s | 615,050 rows |
+| ogr2ogr → `raw_drillholes` | **18 s** | 3,465,828 rows |
+| `010_transform_wamex.sql` | 46 s | 118,834 reports |
+| `011_transform_drillholes.sql` | 67 s | 3,465,828 holes, 0 geometry rejects |
+| export → tippecanoe → PMTiles | 2.5 min | 254 MB |
+
+Plus: Terra Draw free polygons, facets (commodity / hole type / decade / operator /
+depth), and the brief now covers the whole state.
+
+### What we learned — and one thing we had wrong
+
+**1. The "615,050 reports" number was wrong, and so was our first explanation for it.**
+Layer 22 has 615,050 rows and **118,834 distinct A-numbers**. In Phase 0 we explained the
+5.2× ratio as "one report covers many tenements, one row per polygon". That fit the domain
+and the numbers. It was wrong. The bulk data showed 108,522 of 108,523 shaped reports have
+**exactly one geometry**, and the duplicate rows are byte-identical — same `item_no`, same
+URL, same shape. **They are exact duplicate rows**, almost certainly a one-to-many join
+left in the government's export. Every published "615k reports" figure counts them.
+
+*Lesson: a plausible explanation that fits the numbers is not a verified one. It took one
+query — `count(DISTINCT geometry) per anumber` — to find out. The Phase 0 handling
+(`COUNT(DISTINCT anumber)`) was right by luck; the docs and the orientation material were
+teaching the wrong reason. Both are now corrected.*
+
+**2. The bulk file does not carry full abstracts either.** `ABSTRACT: String (250)` in the
+GDB. ADR-007 is resolved: the lazy per-report fetcher is required. Phase 2 work.
+
+**3. 27,409 "outside WA" rejects were Christmas Island.** A phosphate mine, administered by
+WA's mines department, reported into WAMEX. The bounds were wrong; the data was fine. Same
+shape of mistake as the 1753 dates: **read the rejects before trusting the rule.**
+
+**4. Depth has sentinels too.** `-999` and `-9999` for "unknown". 5,424 holes. Nulled and
+quarantined. Auger average depth went from −2 m to 1.8 m.
+
+**5. Three drill codes nobody here can decode.** `RM` (3,790), `LD` (3,669), `MT` (2,722).
+Left as `OTHER` and flagged. **Guessing would be worse than admitting it** — ask a
+geologist.
+
+**6. `DISTINCT ON` beat everything else for dedup.** 615k → 119k rows in under a second.
+
+**7. tippecanoe's default drop-rate hides exactly what we want to show.** Default thins
+points to 1/2.5 per zoom level. At z10 over Kalgoorlie that left 876 of ~84k visible — the
+drill grids, which are the visual signature of exploration, disappeared. `--drop-rate=1`
+drops only where tiles overflow: 12,054 visible, file 125 → 254 MB. ADR-016.
+
+**8. Homebrew's GDAL is 130 packages and 8 GB.** It failed on a full disk. The OSGeo
+Docker image is 150 MB and has every driver we need. ADR-015.
+
+**9. The disk was full.** 980 MB free at the start. Homebrew's cache (3.4 GB) and the
+extracted GDBs (1.5 GB) were the recoverable parts. Docker's disk image does not shrink
+when data inside it is freed. **Check `df -h` before a bulk ingest.**
+
+**10. `FROM a, b JOIN c ON …` again.** No — this time it was an off-by-one in placeholder
+numbering (`$2` where `$1` was meant, because `push` ran before the index was read) and
+`pg` needing `::text[]` to type an array parameter. Both found by the filter tests,
+which is why the filter tests exist.
+
+### Verified
+
+- [x] Reference box: **504 reports** — identical to Phase 0 REST load
+- [x] Reference box holes: 12,387 vs 12,396 — the GDB is dated 14 Sep, the API was read
+      19 Sep, and WA gained 863 holes in between. Consistent, not a loss.
+- [x] **0 orphan drillholes** statewide — every hole's `anumber` exists in `reports`
+- [x] Depth ladder statewide: DD 229 m > RC 65 > AC 45 > RAB 34
+- [x] Every hole in the Golden Mile box targets gold (12,396 / 12,396)
+- [x] PMTiles served with HTTP 206 Range; whole-of-WA view = 82 KB → 1.2 MB with drop-rate 1
+- [x] Facets stack, toggle and clear; all seven filter combos match direct SQL
+- [x] Perth box: 119 reports / 838 holes in 252 ms (all-WA query, under 2 s target)
+- [x] `npm run build`, `tsc`, `eslint` clean
+
+### Open / not done
+
+- `abstract_full` still NULL everywhere — fetcher is Phase 2
+- `RM` / `LD` / `MT` hole codes undecoded — needs a geologist
+- No basemap (ADR-010); Protomaps basemap PMTiles would go in the same bucket
+- Tiles live in `web/public/` for dev. Prod = R2 (ADR-004), not yet deployed
+- The `/api/holes` sampling endpoint still exists as the no-tiles fallback
+
+### Next
+
+- Option 4: publish the cleaned corpus (the transform SQL is most of the work)
+- Weekly refresh job (`run_phase1.py` is idempotent; needs a scheduler)
+- Deploy: Hetzner + R2, per the cost model
+
+---
+
 ## 2026-09-19 (later) — Phase 0 built and verified
 
 ### What we did

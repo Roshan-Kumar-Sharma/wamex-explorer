@@ -232,3 +232,74 @@ sequentially, which is well inside the 2-second target in `BUILD.md` §8.
 
 **Reverses if.** The brief gets slow enough to need parallelism, in which case the `aoi`
 geometry gets passed per-query and the queries run on separate pooled clients.
+
+---
+
+## ADR-014 — Bulk data via DASC's official automation URLs
+**19 Sep 2026 · Accepted**
+
+**Decision.** Ingest from the DASC bulk GDB files at the URLs in DASC's own "URL document
+for dynamic datasets" (`dasc.dmirs.wa.gov.au/Download/File/3599`): drillholes
+`/download/file/1969`, WAMEX `/download/file/4847`. Never paginate the REST API for a
+full load.
+
+**Why.** It is the sanctioned path — the department publishes the document specifically
+"to facilitate automated downloading." The files regenerate nightly and are served from
+Azure Blob in Sydney, which honours HTTP Range. Observed throughput from this network is
+only 20–130 KB/s (a 121 MB file took ~35 min), so `wamex/dasc.py` resumes on failure.
+
+**Reverses if.** DASC stops publishing the document or the URLs.
+
+---
+
+## ADR-015 — GDAL from the OSGeo Docker image, not Homebrew
+**19 Sep 2026 · Accepted**
+
+**Context.** `brew install gdal` pulls **130 dependencies** including gcc and the entire
+AWS C++ SDK — ~8 GB — and it failed halfway on a full disk.
+
+**Decision.** `ghcr.io/osgeo/gdal:alpine-small-latest` (~150 MB) on the compose network,
+wrapped by `wamex/gdal.py`. It has every driver we need: OpenFileGDB, PostgreSQL,
+GeoJSONSeq. `tippecanoe` stays on brew — it has no dependencies.
+
+**Why.** One binary that reads a GDB does not justify 8 GB of toolchain. The image also
+gives every clone an identical GDAL. Cost: ~2 s of container start per call.
+
+**Reverses if.** Never, realistically.
+
+---
+
+## ADR-016 — tippecanoe `--drop-rate=1`
+**19 Sep 2026 · Accepted**
+
+**Context.** The first build used tippecanoe defaults, which thin points to 1/2.5 per zoom
+level below the maximum. At z10 over Kalgoorlie that left **876** of ~84,000 holes
+visible — the drill patterns, which are the whole point of the map, vanished.
+
+**Decision.** `--drop-rate=1 --drop-densest-as-needed --extend-zooms-if-still-dropping`
+with the default 500 KB tile-size limit. Points are dropped only where a tile actually
+overflows, which is only at the low zooms where the whole state sits in a handful of
+tiles.
+
+**Result.** Kalgoorlie at z10: **12,054** rendered. All of WA at z4: 24,639 for 1.2 MB.
+File grew 125 → 254 MB — an acceptable price on R2 with zero egress.
+
+**Reverses if.** The file size becomes a problem, in which case cluster at low zooms
+(`--cluster-distance`) rather than thin at all zooms.
+
+---
+
+## ADR-017 — WA bounds include the Indian Ocean Territories
+**19 Sep 2026 · Accepted**
+
+**Context.** The first drillhole transform rejected **27,409** points at ~106°E, −10.5°S as
+"outside WA".
+
+**Decision.** Bounds are 96–130°E, −36 to −9°S.
+
+**Why.** Those points are **Christmas Island** — a phosphate mine whose exploration is
+administered by WA's mines department and reported into WAMEX. Cocos (Keeling) at 96.8°E
+is included for safety. They are real, and the bound was wrong, not the data. Same lesson
+as the 1753 dates: look at the rejects before trusting the rule that rejected them.
+
+**Reverses if.** Nothing plausible.

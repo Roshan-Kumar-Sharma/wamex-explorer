@@ -37,9 +37,9 @@ TILES = ROOT / "data" / "tiles"
 PUBLIC_TILES = ROOT / "web" / "public" / "tiles"
 
 GDB_LAYERS = {
-    # dataset -> (layer name inside the GDB, staging table)
-    "wamex": ("Exploration_Reports", "raw_wamex"),
-    "drillholes": (None, "raw_drillholes"),   # layer name discovered at load time
+    # dataset -> (layer name inside the GDB, staging table, fid column name)
+    "wamex": ("Exploration_Reports", "raw_wamex", "ogc_fid"),
+    "drillholes": ("MINERAL_Expl_Drillholes_Openfile", "raw_drillholes", "objectid"),
 }
 
 
@@ -50,11 +50,11 @@ def step_download() -> None:
 
 def step_load() -> None:
     from wamex.gdal import layers as gdb_layers
-    for name, (layer, table) in GDB_LAYERS.items():
+    for name, (layer, table, fid) in GDB_LAYERS.items():
         gdb = extract_gdb(DATA / f"{name}.zip")
         layer = layer or gdb_layers(gdb)[0]
         t0 = time.time()
-        gdb_to_postgis(gdb, layer, table)
+        gdb_to_postgis(gdb, layer, table, fid_name=fid)
         log.info("%s -> %s in %.0fs", name, table, time.time() - t0)
 
 
@@ -111,9 +111,14 @@ def step_tiles() -> None:
         "tippecanoe", "-o", str(pmtiles), "--force",
         "--layer=drillholes",
         "--minimum-zoom=3", "--maximum-zoom=14",
-        "--drop-densest-as-needed",       # generalise crowded low-zoom tiles
+        # -r1: do NOT thin points by a fixed ratio at every zoom level (the
+        # default drops to 1/2.5 per level, which left 876 of ~84k Kalgoorlie
+        # holes visible at z10 and hid the drill patterns). Instead, drop only
+        # where a tile actually exceeds the size limit, which is only at the
+        # low zooms where the whole state is in a handful of tiles.
+        "--drop-rate=1",
+        "--drop-densest-as-needed",
         "--extend-zooms-if-still-dropping",
-        "--no-tile-size-limit",
         "--quiet",
         str(geojsonl),
     ], check=True)
