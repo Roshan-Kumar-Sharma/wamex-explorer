@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import BriefPanel from "./Brief";
 import type { Brief } from "./types";
@@ -17,6 +17,9 @@ export default function Page() {
   const [filters, setFilters] = useState<Filters>({});
   const [brief, setBrief] = useState<Brief | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialGeometry, setInitialGeometry] = useState<GeoJSON.Polygon | null>(null);
+  const [showCoverage, setShowCoverage] = useState(false);
+  const [share, setShare] = useState<{ state: "idle" | "saving" | "done" | "error"; url?: string }>({ state: "idle" });
   const reqId = useRef(0);
 
   // One place runs the brief. The map supplies geometry; the panel supplies
@@ -45,11 +48,50 @@ export default function Page() {
   const onGeometry = useCallback((g: GeoJSON.Polygon | null) => {
     setGeometry(g);
     setFilters({});            // a new area starts unfiltered
+    setShare({ state: "idle" });
     run(g, {});
   }, [run]);
 
+  // /?b=<id>: reopen a permalink on the map. Read once on mount; the polygon
+  // and filters come from the stored brief, then the live brief is re-run so
+  // the panel reflects today's data (the document at /b/<id> stays as stored).
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("b");
+    if (!id) return;
+    (async () => {
+      const r = await fetch(`/api/briefs/${id}`);
+      if (!r.ok) return;
+      const b = await r.json();
+      setInitialGeometry(b.geometry);
+      setGeometry(b.geometry);
+      setFilters(b.filters ?? {});
+      setShare({ state: "done", url: `/b/${b.slug ?? b.id}` });
+      run(b.geometry, b.filters ?? {});
+    })();
+  }, [run]);
+
+  /** Save & share: create (or find) the permalink for this polygon + filters, then open the document. */
+  const onShare = useCallback(async () => {
+    if (!geometry) return;
+    setShare({ state: "saving" });
+    try {
+      const r = await fetch("/api/briefs", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ geometry, filters }),
+      });
+      if (!r.ok) throw new Error();
+      const j = await r.json();
+      setShare({ state: "done", url: j.url });
+      window.history.replaceState(null, "", `/?b=${j.id}`);
+      window.open(j.url, "_blank", "noopener");
+    } catch {
+      setShare({ state: "error" });
+    }
+  }, [geometry, filters]);
+
   /** Toggle a value in an array facet, or set/clear a scalar one. */
   const onFilter = useCallback((patch: Partial<Filters>) => {
+    setShare({ state: "idle" });
     // Compute from the current value, not inside a setState updater: updaters
     // must be pure (StrictMode calls them twice) and this one triggers a fetch.
     const next: Filters = { ...filters };
@@ -67,7 +109,7 @@ export default function Page() {
     run(geometry, next);
   }, [filters, geometry, run]);
 
-  const onClearFilters = useCallback(() => { setFilters({}); run(geometry, {}); }, [geometry, run]);
+  const onClearFilters = useCallback(() => { setFilters({}); setShare({ state: "idle" }); run(geometry, {}); }, [geometry, run]);
 
   return (
     <main className="flex h-screen flex-col">
@@ -77,13 +119,18 @@ export default function Page() {
           <span className="text-[11px] text-stone-500">Western Australia open-file exploration history</span>
         </div>
         <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800">
-          {process.env.NEXT_PUBLIC_PMTILES_URL ? "Phase 1 · all of WA" : "Phase 0 · Kalgoorlie"}
+          {process.env.NEXT_PUBLIC_PMTILES_URL ? "Phase 2 · all of WA" : "Phase 0 · Kalgoorlie"}
         </span>
       </header>
 
       <div className="flex min-h-0 flex-1">
         <div className="min-w-0 flex-1">
-          <Map onGeometry={onGeometry} />
+          <Map
+            onGeometry={onGeometry}
+            initialGeometry={initialGeometry}
+            coverage={brief?.coverage.grid ?? null}
+            showCoverage={showCoverage}
+          />
         </div>
         <aside className="w-[420px] shrink-0 overflow-hidden border-l border-stone-200">
           <BriefPanel
@@ -93,6 +140,10 @@ export default function Page() {
             filtered={!isEmpty(filters)}
             onFilter={onFilter}
             onClearFilters={onClearFilters}
+            showCoverage={showCoverage}
+            onToggleCoverage={() => setShowCoverage((v) => !v)}
+            share={share}
+            onShare={onShare}
           />
         </aside>
       </div>

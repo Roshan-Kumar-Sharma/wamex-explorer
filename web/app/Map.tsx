@@ -63,15 +63,26 @@ const CIRCLE_PAINT: maplibregl.CircleLayerSpecification["paint"] = {
 };
 
 type DrawMode = "polygon" | "rectangle" | null;
-type Props = { onGeometry: (g: GeoJSON.Polygon | null) => void };
+type Coverage = GeoJSON.FeatureCollection<GeoJSON.Geometry, { holes: number; deep: boolean; bedrock: boolean }>;
+type Props = {
+  onGeometry: (g: GeoJSON.Polygon | null) => void;
+  /** A polygon to place on the map from outside, e.g. a permalink being reopened. */
+  initialGeometry?: GeoJSON.Polygon | null;
+  /** The brief's coverage grid, drawn under the holes when `showCoverage`. */
+  coverage?: Coverage | null;
+  showCoverage?: boolean;
+};
 
-export default function Map({ onGeometry }: Props) {
+const EMPTY_FC: Coverage = { type: "FeatureCollection", features: [] };
+
+export default function Map({ onGeometry, initialGeometry, coverage, showCoverage }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
   const draw = useRef<TerraDraw | null>(null);
   const [shown, setShown] = useState<{ total: number; shown: number } | null>(null);
   const [mode, setMode] = useState<DrawMode>(null);
   const [hasSelection, setHasSelection] = useState(false);
+  const [ready, setReady] = useState(false);
 
   // Keep the latest callback in a ref. The map effect must NOT depend on it:
   // a dependency on a parent callback whose identity changes would tear down
@@ -139,6 +150,34 @@ export default function Map({ onGeometry }: Props) {
         m.on("moveend", () => loadHoles(m));
       }
 
+      // Coverage grid (Phase 2): which cells of the drawn area have no hole,
+      // or only shallow ones. Sits under the holes so the collars stay legible.
+      m.addSource("coverage", { type: "geojson", data: EMPTY_FC });
+      m.addLayer({
+        id: "coverage-fill", type: "fill", source: "coverage",
+        paint: {
+          "fill-color": [
+            "case",
+            ["==", ["get", "holes"], 0], "#dc2626",
+            ["!", ["get", "deep"]], "#f59e0b",
+            "#78716c",
+          ],
+          "fill-opacity": [
+            "case",
+            ["==", ["get", "holes"], 0], 0.22,
+            ["!", ["get", "deep"]], 0.14,
+            0.04,
+          ],
+        },
+        layout: { visibility: "none" },
+      }, "holes");
+      m.addLayer({
+        id: "coverage-line", type: "line", source: "coverage",
+        paint: { "line-color": "#78716c", "line-opacity": 0.25, "line-width": 0.5 },
+        layout: { visibility: "none" },
+      }, "holes");
+      setReady(true);
+
       m.on("click", "holes", (e: MapMouseEvent & { features?: MapGeoJSONFeature[] }) => {
         // Read the live draw mode, not a closed-over React state value.
         const dm = draw.current?.getMode();
@@ -199,6 +238,32 @@ export default function Map({ onGeometry }: Props) {
       map.current = null;
     };
   }, [loadHoles]);
+
+  // Push the latest coverage grid into the map and toggle its visibility.
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready) return;
+    (m.getSource("coverage") as maplibregl.GeoJSONSource | undefined)?.setData(coverage ?? EMPTY_FC);
+    const vis = showCoverage && coverage ? "visible" : "none";
+    for (const id of ["coverage-fill", "coverage-line"]) {
+      if (m.getLayer(id)) m.setLayoutProperty(id, "visibility", vis);
+    }
+  }, [coverage, showCoverage, ready]);
+
+  // A polygon handed in from outside (a reopened permalink): draw it, frame it.
+  useEffect(() => {
+    const m = map.current;
+    const td = draw.current;
+    if (!m || !td || !ready || !initialGeometry) return;
+    td.clear();
+    td.addFeatures([{ type: "Feature", geometry: initialGeometry, properties: { mode: "polygon" } }]);
+    td.setMode("select");
+    setMode(null);
+    setHasSelection(true);
+    const xs = initialGeometry.coordinates[0].map((c) => c[0]);
+    const ys = initialGeometry.coordinates[0].map((c) => c[1]);
+    m.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: 60, duration: 0 });
+  }, [initialGeometry, ready]);
 
   const startMode = (next: DrawMode) => {
     const td = draw.current;
@@ -268,6 +333,13 @@ export default function Map({ onGeometry }: Props) {
             {k}
           </div>
         ))}
+        {showCoverage && coverage && (
+          <>
+            <div className="mb-1 mt-2 font-medium text-stone-700">Coverage grid</div>
+            <div className="flex items-center gap-1.5 text-stone-600"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-red-600/30" />no drillhole</div>
+            <div className="flex items-center gap-1.5 text-stone-600"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-amber-500/25" />none ≥ 50 m</div>
+          </>
+        )}
       </div>
     </div>
   );
