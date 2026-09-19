@@ -16,3 +16,14 @@ body { background: var(--bg); color: var(--ink); }
 /* The output is a document, so give it document typography. */
 .doc { font-variant-numeric: tabular-nums; }
 .maplibregl-ctrl-attrib { font-size: 10px; }
+
+/* The brief as a printed document. */
+@media print {
+  @page { margin: 18mm 16mm; }
+  body { background: white; }
+  .doc { font-size: 11pt; }
+  .doc a { color: inherit; text-decoration: none; }
+  .doc a[href^="http"]::after { content: ""; }
+  .break-inside-avoid { break-inside: avoid; }
+  .break-after-avoid { break-after: avoid; }
+}
