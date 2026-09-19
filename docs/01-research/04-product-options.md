@@ -176,4 +176,76 @@ months.
 
 ---
 
+## How to evaluate a target — the rule behind the scoreboard
+
+Written after the question *"NextMaps built something better, but if there's space for
+others, can't we build something better and cheaper?"* The instinct is half right, and
+the half that's wrong will waste a year. This is the filter.
+
+### NextMaps is not a monopoly, and that is the problem
+
+A monopoly has something that keeps others out — locked data, patents, network effects,
+regulatory capture. NextMaps has none of those. The data is CC BY 4.0. They are a small
+WA startup that got there first. **Anyone can enter tomorrow.** That sounds like an
+opening; it is actually the warning sign, because it means the field is open to everyone
+*and* one player already has a head start, customers, and domain knowledge.
+
+### Why "better and cheaper" fails against a small, fast incumbent
+
+| "Cheaper" | Their free tier already includes WAMEX layers and 15 AI questions a day. You cannot undercut free. |
+| "Better" | Requires knowing what a tenement manager needs on a Tuesday morning. That is domain knowledge the incumbent's founder has and a newcomer does not. You would be guessing at "better" from outside. |
+| Market size | WA exploration employs ~4,500 people. Paying seats might be a few thousand. Two players splitting that and racing on price means both starve. Second place in a small market eats scraps. |
+| Structural edge | Cheaper only wins with a cost advantage the incumbent cannot match. A solo dev pays the same cloud bill. |
+
+### When "better and cheaper" does work
+
+Against incumbents that are **big, slow, expensive, and unable to change** — never
+against a two-year-old startup with a free tier.
+
+| Incumbent profile | Examples | Seat price | Why they cannot respond |
+|---|---|---|---|
+| Legacy mine-planning software | Surpac, Vulcan, Micromine, Datamine, Deswik | **$20k–60k/yr** | Decades old, Windows desktop, proprietary formats, glacial releases. Cannot drop price without destroying their own revenue; cannot modernise without a rewrite. |
+| Drill & blast design | A handful of players | Expensive | Same shape. |
+
+`mineio` — open format interchange — is *exactly* the wedge into that space: it attacks the
+lock-in without competing head-on with the software itself.
+
+> These markets are not yet researched in this project. This is the **shape** to look
+> for, not a verified target. Option 5 is where that research starts.
+
+### The four-part filter
+
+"If there is space, go for it" is too loose — there is space in plenty of markets nobody
+wants. Use all four:
+
+1. **A pain someone already pays to remove.** Not one you think they *should* have.
+2. **A structural reason you can address it better** — domain knowledge, distribution,
+   cost structure, or a technical edge they cannot copy.
+3. **The incumbent is big-and-slow, not small-and-fast.**
+4. **The market is big enough that second place still eats.**
+
+| | 1. Paid pain | 2. Structural edge | 3. Big & slow | 4. Market size |
+|---|---|---|---|---|
+| Clone NextMaps | ✓ | ✗ | ✗ | ✗ |
+| Legacy mine software (via `mineio`) | ✓ | *becomes ✓ with domain knowledge* | ✓ | ✓ |
+
+### What this means right now
+
+Every choice should serve the actual goal — a Perth mining-tech role — because that is
+also the only foundation a later startup could stand on. A public WAMEX corpus and a
+working open-source library get the job *and* build the three things you cannot start a
+company in this industry without: domain knowledge, reputation, distribution. A clone
+gets none of them.
+
+Two things to keep in view:
+
+- **NextMaps proved the market and it may grow.** Keep `wamex-explorer` alive as the
+  classroom. Once the domain is genuinely understood, the niche they neglect will be
+  visible. Picking it now is guessing.
+- **NextMaps is a small WA startup.** Someone who shows up with a public, cleaned WAMEX
+  dataset and deep pipeline knowledge is exactly who they would hire. Do not rule that
+  out.
+
+---
+
 **Next:** [../02-architecture/01-tech-stack.md](../02-architecture/01-tech-stack.md)
