@@ -1,0 +1,21 @@
+services:
+  db:
+    image: imresamu/postgis:17-3.5   # arm64-capable rebuild of postgis/postgis (Apple Silicon)
+    container_name: wamex-db
+    environment:
+      POSTGRES_USER: wamex
+      POSTGRES_PASSWORD: wamex
+      POSTGRES_DB: wamex
+    ports:
+      - "54329:5432"          # non-standard host port: avoids clashing with local pg
+    volumes:
+      - wamex_pgdata:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wamex -d wamex"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  wamex_pgdata:

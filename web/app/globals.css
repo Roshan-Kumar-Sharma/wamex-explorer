@@ -1,0 +1,18 @@
+@import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+:root {
+  --bg: #ffffff;
+  --panel: #fafaf9;
+  --ink: #1c1917;
+  --muted: #78716c;
+  --line: #e7e5e4;
+  --accent: #b45309;
+}
+
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); }
+
+/* The output is a document, so give it document typography. */
+.doc { font-variant-numeric: tabular-nums; }
+.maplibregl-ctrl-attrib { font-size: 10px; }

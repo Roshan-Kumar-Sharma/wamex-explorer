@@ -1,0 +1,24 @@
+# python
+.venv/
+__pycache__/
+*.pyc
+.env
+
+# node
+node_modules/
+.next/
+out/
+
+# data
+data/
+*.pmtiles
+*.geojsonl
+
+# os
+.DS_Store
+
+# vendored from node_modules by `npm run sync:maplibre` (predev/postinstall)
+web/public/maplibre/
+
+# python build artifacts
+*.egg-info/
