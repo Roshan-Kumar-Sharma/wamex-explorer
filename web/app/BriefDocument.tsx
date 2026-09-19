@@ -144,13 +144,23 @@ export default function BriefDocument({ brief, id, title, createdAt, permalink }
           {permalink && <> · permalink <a href={permalink} className="text-stone-500 underline">{permalink}</a></>}
         </p>
         {id && (
-          <div className="mt-3 flex gap-2 text-[12px] print:hidden">
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px] print:hidden">
             <a href={`/?b=${id}`} className="rounded-md border border-stone-300 bg-white px-3 py-1.5 font-medium text-stone-800 hover:bg-stone-50">
               Open on the map
             </a>
-            <a href={`/api/briefs/${id}`} className="rounded-md border border-stone-300 bg-white px-3 py-1.5 font-medium text-stone-800 hover:bg-stone-50">
-              JSON
-            </a>
+            <span className="text-stone-400">Export:</span>
+            {([
+              ["timeline.csv", "section G table (CSV)"],
+              ["timeline.md", "Markdown"],
+              ["reports.csv", "reports (CSV)"],
+              ["brief.md", "whole brief (Markdown)"],
+              ["holes.geojson", "collars (GeoJSON)"],
+              ["", "JSON"],
+            ] as const).map(([f, label]) => (
+              <a key={label} href={`/api/briefs/${id}${f ? `/${f}` : ""}`} className="text-amber-800 underline decoration-amber-300 hover:decoration-amber-800">
+                {label}
+              </a>
+            ))}
           </div>
         )}
       </header>
@@ -244,6 +254,14 @@ export default function BriefDocument({ brief, id, title, createdAt, permalink }
         </table>
       ) : (
         <p className="text-[12.5px] text-stone-500">No operator is named on any report intersecting this area.</p>
+      )}
+      {brief.timeline.length > 0 && id && (
+        <p className="mt-2 text-[11px] text-stone-500 print:hidden">
+          This is the &ldquo;Previous exploration activities&rdquo; table (section G) the department requires in every exploration
+          report. Export it with A-numbers as{" "}
+          <a href={`/api/briefs/${id}/timeline.csv`} className="text-amber-800 underline decoration-amber-300">CSV</a> or{" "}
+          <a href={`/api/briefs/${id}/timeline.md`} className="text-amber-800 underline decoration-amber-300">Markdown</a>.
+        </p>
       )}
       {brief.reportsByDecade.length > 0 && (
         <div className="mt-4">

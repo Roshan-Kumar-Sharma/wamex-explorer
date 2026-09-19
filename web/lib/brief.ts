@@ -192,14 +192,15 @@ export async function buildBrief(
             WHERE ST_Intersects(rg.geom, aoi.geom) ${rw.sql}
          ), ops AS (
            SELECT operator, count(*)::int AS reports,
-                  min(report_year)::int AS first_year, max(report_year)::int AS last_year
+                  min(report_year)::int AS first_year, max(report_year)::int AS last_year,
+                  array_agg(anumber ORDER BY report_year NULLS LAST, anumber) AS anumbers
              FROM rep WHERE operator IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 40
          ), holes AS (
            SELECT d.operator, count(*)::int AS holes FROM drillholes d, aoi
             WHERE ST_Intersects(d.geom, aoi.geom) AND d.operator IN (SELECT operator FROM ops)
             GROUP BY 1
          )
-         SELECT ops.operator, ops.reports, ops.first_year, ops.last_year, coalesce(holes.holes, 0) AS holes,
+         SELECT ops.operator, ops.reports, ops.first_year, ops.last_year, ops.anumbers, coalesce(holes.holes, 0) AS holes,
                 (SELECT coalesce(array_agg(name ORDER BY n DESC), '{}')
                    FROM (SELECT c.name, count(*) n FROM rep
                            JOIN report_commodities rc ON rc.anumber = rep.anumber

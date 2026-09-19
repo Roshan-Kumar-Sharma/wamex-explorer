@@ -31,6 +31,8 @@ export type Brief = {
   timeline: {
     operator: string; reports: number; first_year: number | null; last_year: number | null;
     holes: number; commodities: string[];
+    /** Every A-number this operator holds here, oldest first — the citation column of a section G table. */
+    anumbers: number[];
   }[];
   drilling: {
     byMethodDecade: { holetype: string; decade: number; holes: number; total_m: number | null }[];
