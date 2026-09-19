@@ -26,12 +26,16 @@ FROM raw_drillholes
 WHERE geom IS NULL
    OR NOT (ST_X(geom) BETWEEN 96 AND 130 AND ST_Y(geom) BETWEEN -36 AND -9);
 
--- maxdepth of -999 / -9999 is a sentinel for "unknown". Logged, then NULLed
--- below; the hole itself is real and kept.
+-- maxdepth of -999 / -9999 / 9999 is a sentinel for "unknown". Logged, then
+-- NULLed below; the hole itself is real and kept. 9999 was found in Phase 2
+-- (64 holes, all UNKNOWN/RAB). The deepest genuine value is 4,431 m -- a
+-- Canning Basin petroleum well filed under a minerals report -- so the cap
+-- is 9000, well clear of anything real.
 INSERT INTO rejected_rows (source_layer, source_id, reason, raw)
-SELECT '28', objectid::text, 'maxdepth_negative_sentinel',
+SELECT '28', objectid::text,
+       CASE WHEN maxdepth < 0 THEN 'maxdepth_negative_sentinel' ELSE 'maxdepth_9999_sentinel' END,
        jsonb_build_object('objectid', objectid, 'holeid', holeid, 'maxdepth', maxdepth)
-FROM raw_drillholes WHERE maxdepth < 0;
+FROM raw_drillholes WHERE maxdepth < 0 OR maxdepth >= 9000;
 
 -- ── drillholes ───────────────────────────────────────────────────────────
 INSERT INTO drillholes (objectid, holeid, collarid, anumber, holetype, holetype_std,
@@ -43,7 +47,7 @@ SELECT DISTINCT ON (r.objectid)
        r.anumber,
        nullif(trim(r.holetype), ''),
        coalesce(m.std, CASE WHEN nullif(trim(r.holetype), '') IS NULL THEN 'UNKNOWN' ELSE 'OTHER' END),
-       CASE WHEN r.maxdepth < 0 THEN NULL ELSE r.maxdepth END,
+       CASE WHEN r.maxdepth < 0 OR r.maxdepth >= 9000 THEN NULL ELSE r.maxdepth END,
        nullif(trim(r.operator), ''),
        nullif(trim(r.project), ''),
        r.period_from::date, r.period_to::date, r.extract_date::date,

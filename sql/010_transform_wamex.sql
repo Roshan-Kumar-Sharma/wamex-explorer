@@ -11,6 +11,9 @@
 --   59,242 rows (10,430 reports) have NULL geometry -- is_shaped = 0.
 --   385 geometries are invalid (ring self-intersection) -> ST_MakeValid.
 --   15,300 rows carry report_year = 1753 (SQL Server datetime floor = NULL).
+--   10 rows carry report_year = 1899 (Excel's epoch, 1899-12-30 = "day 0").
+--   Two sentinels from two different systems. Nothing genuine exists before
+--   1930 (the oldest real report is 1937), so the floor is 1930, not 1880.
 
 SET client_min_messages = WARNING;
 
@@ -26,14 +29,14 @@ DELETE FROM rejected_rows WHERE source_layer = '22';
 INSERT INTO rejected_rows (source_layer, source_id, reason, raw)
 SELECT '22', anumber::text,
        CASE WHEN date_from IS NOT NULL
-                 AND extract(year FROM date_from) BETWEEN 1880 AND extract(year FROM now()) + 1
+                 AND extract(year FROM date_from) BETWEEN 1930 AND extract(year FROM now()) + 1
             THEN 'report_year_recovered_from_date_from'
             ELSE 'report_year_unrecoverable' END,
        jsonb_build_object('anumber', anumber, 'report_year', report_year,
                           'date_from', date_from, 'title', title)
 FROM (SELECT DISTINCT ON (anumber) * FROM raw_wamex ORDER BY anumber, ogc_fid) r
 WHERE report_year IS NOT NULL
-  AND report_year NOT BETWEEN 1880 AND extract(year FROM now()) + 1;
+  AND report_year NOT BETWEEN 1930 AND extract(year FROM now()) + 1;
 
 -- ── reports: ONE row per anumber ─────────────────────────────────────────
 INSERT INTO reports (anumber, title, report_year, report_year_raw, author_name,
@@ -44,9 +47,9 @@ SELECT DISTINCT ON (anumber)
        anumber,
        nullif(trim(title), ''),
        CASE
-         WHEN report_year BETWEEN 1880 AND extract(year FROM now()) + 1 THEN report_year
+         WHEN report_year BETWEEN 1930 AND extract(year FROM now()) + 1 THEN report_year
          WHEN date_from IS NOT NULL
-              AND extract(year FROM date_from) BETWEEN 1880 AND extract(year FROM now()) + 1
+              AND extract(year FROM date_from) BETWEEN 1930 AND extract(year FROM now()) + 1
            THEN extract(year FROM date_from)::smallint
          ELSE NULL
        END,

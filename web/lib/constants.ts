@@ -37,3 +37,20 @@ export const HOLETYPE_COLORS: Record<string, string> = {
   RCD: "#7c3aed",
   AUGER: "#ca8a04",
 };
+
+// The commodities a WA geologist would expect to see checked. Used only to
+// say "no open-file report on this ground records X as a target" -- a fact
+// about the record, never a claim about the rocks. Top of the statewide
+// distribution (GOLD 77k reports ... TUNGSTEN 576), plus lithium and REE,
+// which are recent and therefore under-represented in a 60-year archive.
+export const MAJOR_COMMODITIES = [
+  "GOLD", "NICKEL", "COPPER", "IRON", "BASE METALS", "ZINC", "URANIUM", "DIAMOND",
+  "LEAD", "PLATINUM GROUP ELEMENTS", "COBALT", "SILVER", "LITHIUM", "MINERAL SANDS",
+  "RARE EARTH ELEMENTS", "TANTALUM", "MANGANESE", "COAL", "TIN", "VANADIUM",
+  "POTASH", "BAUXITE", "TUNGSTEN",
+];
+
+/** Where a brief's data came from, for the document footer. */
+export const SOURCE_NOTE =
+  "Drillhole collars from DMPE SLIP layer 28 and WAMEX report metadata from layer 22, " +
+  "via the DASC bulk download. Open-file records only; confidential reports are not included.";
