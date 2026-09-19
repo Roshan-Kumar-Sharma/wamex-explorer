@@ -11,7 +11,6 @@ import {
 } from "terra-draw";
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
 import { HOLETYPE_COLORS } from "@/lib/constants";
-import type { Brief } from "./types";
 
 // MapLibre v6 finds its Web Worker with `new URL("./maplibre-gl-worker.mjs",
 // import.meta.url)`. Under Next that resolves into /_next/static/chunks/, where
@@ -34,7 +33,7 @@ maplibregl.addProtocol("pmtiles", new PMTilesProtocol().tile);
 /** Phase 1 tiles, if built. Falls back to the sampled GeoJSON endpoint otherwise. */
 const PMTILES_URL = process.env.NEXT_PUBLIC_PMTILES_URL ?? "";
 
-/** All of WA (bounds). */
+/** All of WA. */
 const WA_BOUNDS: LngLatBoundsLike = [[112.5, -35.5], [129.5, -13.5]];
 
 /**
@@ -64,9 +63,9 @@ const CIRCLE_PAINT: maplibregl.CircleLayerSpecification["paint"] = {
 };
 
 type DrawMode = "polygon" | "rectangle" | null;
-type Props = { onBrief: (b: Brief | null, loading: boolean) => void };
+type Props = { onGeometry: (g: GeoJSON.Polygon | null) => void };
 
-export default function Map({ onBrief }: Props) {
+export default function Map({ onGeometry }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
   const draw = useRef<TerraDraw | null>(null);
@@ -74,12 +73,11 @@ export default function Map({ onBrief }: Props) {
   const [mode, setMode] = useState<DrawMode>(null);
   const [hasSelection, setHasSelection] = useState(false);
 
-  // Keep the latest onBrief in a ref. The map effect must NOT depend on it:
-  // the parent passes an inline arrow, so its identity changes on every render,
-  // and a dependency on it would tear down and recreate the map each time the
-  // brief updates (which is exactly what happened -- the view reset to WA).
-  const onBriefRef = useRef(onBrief);
-  useEffect(() => { onBriefRef.current = onBrief; }, [onBrief]);
+  // Keep the latest callback in a ref. The map effect must NOT depend on it:
+  // a dependency on a parent callback whose identity changes would tear down
+  // and recreate the map on every render (which happened -- view reset to WA).
+  const onGeometryRef = useRef(onGeometry);
+  useEffect(() => { onGeometryRef.current = onGeometry; }, [onGeometry]);
 
   // Phase 0 fallback: sampled GeoJSON for the viewport. Unused once PMTiles exist.
   const loadHoles = useCallback(async (m: MLMap) => {
@@ -93,15 +91,6 @@ export default function Map({ onBrief }: Props) {
     setShown({ total: fc._meta.total, shown: fc._meta.shown });
   }, []);
 
-  const runBrief = useCallback(async (geometry: GeoJSON.Polygon) => {
-    onBriefRef.current(null, true);
-    const r = await fetch("/api/brief", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ geometry }),
-    });
-    onBriefRef.current(r.ok ? await r.json() : null, false);
-  }, []);
 
   useEffect(() => {
     if (!ref.current || map.current) return;
@@ -151,7 +140,9 @@ export default function Map({ onBrief }: Props) {
       }
 
       m.on("click", "holes", (e: MapMouseEvent & { features?: MapGeoJSONFeature[] }) => {
-        if (mode) return;
+        // Read the live draw mode, not a closed-over React state value.
+        const dm = draw.current?.getMode();
+        if (dm && dm !== "select") return;
         const f = e.features?.[0];
         if (!f) return;
         const p = f.properties as Record<string, unknown>;
@@ -193,7 +184,7 @@ export default function Map({ onBrief }: Props) {
         td.setMode("select");
         setMode(null);
         setHasSelection(true);
-        runBrief(f.geometry as GeoJSON.Polygon);
+        onGeometryRef.current(f.geometry as GeoJSON.Polygon);
       });
       draw.current = td;
     };
@@ -207,9 +198,7 @@ export default function Map({ onBrief }: Props) {
       m.remove();
       map.current = null;
     };
-    // `mode` is read inside handlers via draw.current, not closed over.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadHoles, runBrief]);
+  }, [loadHoles]);
 
   const startMode = (next: DrawMode) => {
     const td = draw.current;
@@ -221,7 +210,7 @@ export default function Map({ onBrief }: Props) {
     }
     td.clear();
     setHasSelection(false);
-    onBriefRef.current(null, false);
+    onGeometryRef.current(null);
     td.setMode(next);
     setMode(next);
   };
@@ -231,7 +220,7 @@ export default function Map({ onBrief }: Props) {
     draw.current?.setMode("select");
     setMode(null);
     setHasSelection(false);
-    onBriefRef.current(null, false);
+    onGeometryRef.current(null);
   };
 
   const btn = (active: boolean) =>
